@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+.env
+*.log
+
+# editor / os noise
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# build / temp
+dist/
+tmp/
+coverage/
