@@ -214,7 +214,7 @@ export function createInitialState(config) {
     v: SCHEMA_VERSION,
     id: config.id || 'g' + Date.now().toString(36),
     mode: config.mode || MODE.VS_COMPUTER,
-    createdAt: config.createdAt || Date.now(),
+    createdAt: Number.isFinite(config.createdAt) ? config.createdAt : Date.now(),
     players,
     turn: start,
     dice: null,
