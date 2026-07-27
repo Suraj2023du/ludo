@@ -32,7 +32,6 @@ export const EVENTS = Object.freeze({
 
   // ── controller / app ──
   GAME_STARTED: 'game:started',
-  GAME_RESUMED: 'game:resumedGame',
   STATE_CHANGED: 'state:changed',
   TURN_BEGIN: 'turn:begin',
   ROLL_START: 'dice:rollStart',

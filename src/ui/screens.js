@@ -63,7 +63,7 @@ export function createRouter({ root, audio }) {
 
 /* ─────────────────────────────────── toasts ─────────────────────────────── */
 
-export function createToaster({ host, bus }) {
+export function createToaster({ host, bus, i18n = null }) {
   function toast(text, kind = 'info', ms = 1800) {
     const el = document.createElement('div');
     el.className = 'toast toast--' + kind;
@@ -80,7 +80,14 @@ export function createToaster({ host, bus }) {
     return el;
   }
 
-  if (bus) bus.on(EVENTS.TOAST, (p) => toast(p.text, p.kind || 'info', p.ms));
+  // Payloads may carry a translation key instead of text — that is how the
+  // controller stays language-agnostic.
+  if (bus) {
+    bus.on(EVENTS.TOAST, (p) => {
+      const text = p.key && i18n ? i18n.t(p.key, p.vars) : p.text;
+      if (text) toast(text, p.kind || 'info', p.ms);
+    });
+  }
   return { toast };
 }
 
@@ -156,7 +163,8 @@ export function createPassScreen({ el, bus, audio, prefs }) {
 /**
  * Player setup: mode title, 2/3/4 players, colour pick, editable names.
  */
-export function createSetupScreen({ el, prefs, audio, onStart, onBack }) {
+export function createSetupScreen({ el, prefs, audio, onStart, onBack, i18n = null }) {
+  const t = i18n ? (k, v) => i18n.t(k, v) : (k) => k;
   const title = el.querySelector('[data-setup="title"]');
   const countRow = el.querySelector('[data-setup="count"]');
   const colorRow = el.querySelector('[data-setup="colors"]');
@@ -252,7 +260,7 @@ export function createSetupScreen({ el, prefs, audio, onStart, onBack }) {
 
       const tag = document.createElement('span');
       tag.className = 'name-tag';
-      tag.textContent = isHuman ? 'YOU' : 'BOT';
+      tag.textContent = isHuman ? t('common.you').toUpperCase() : t('common.bot');
       if (everyoneHuman) tag.textContent = 'P' + (colors.indexOf(color) + 1);
 
       row.append(dot, input, tag);
@@ -261,10 +269,18 @@ export function createSetupScreen({ el, prefs, audio, onStart, onBack }) {
     }
   }
 
+  /** Literal keys (not built by string concatenation) so they stay auditable. */
+  const MODE_KEYS = {
+    vsComputer: { title: 'home.computer', sub: 'setup.subVsComputer' },
+    passPlay: { title: 'home.passPlay', sub: 'setup.subPassPlay' },
+    quickMatch: { title: 'home.quick', sub: 'setup.subQuickMatch' },
+  };
+
   function render() {
     const m = meta();
-    title.textContent = m.title;
-    hint.textContent = m.blurb;
+    const keys = MODE_KEYS[mode];
+    title.textContent = keys ? t(keys.title) : m.title;
+    hint.textContent = keys ? t(keys.sub) : m.blurb;
     count = Math.min(Math.max(count, m.minPlayers), m.maxPlayers);
     renderCounts();
     renderColors();
@@ -300,7 +316,9 @@ export function createSetupScreen({ el, prefs, audio, onStart, onBack }) {
 
 /* ───────────────────────────── settings screen ──────────────────────────── */
 
-export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset, themeIds }) {
+export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset, themeIds, i18n = null, onLangChange }) {
+  const t = i18n ? (k, v) => i18n.t(k, v) : (k) => k;
+  const langRow = el.querySelector('[data-set="lang"]');
   const soundBtn = el.querySelector('[data-set="sound"]');
   const vibeBtn = el.querySelector('[data-set="vibration"]');
   const themeRow = el.querySelector('[data-set="theme"]');
@@ -311,7 +329,7 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
 
   function toggleLabel(btn, on) {
     btn.setAttribute('aria-pressed', String(on));
-    btn.querySelector('[data-state]').textContent = on ? 'ON' : 'OFF';
+    btn.querySelector('[data-state]').textContent = on ? t('set.on') : t('set.off');
   }
 
   soundBtn.addEventListener('click', () => {
@@ -356,9 +374,9 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
     statsBox.textContent = '';
     const all = stats.all();
     const rows = [
-      ['Vs Computer', all.modes.vsComputer],
-      ['Pass & Play', all.modes.passPlay],
-      ['Quick Match', all.modes.quickMatch],
+      [t('home.computer'), all.modes.vsComputer],
+      [t('home.passPlay'), all.modes.passPlay],
+      [t('home.quick'), all.modes.quickMatch],
     ];
     for (const [label, m] of rows) {
       const s = m || { games: 0, wins: 0, streak: 0, bestStreak: 0 };
@@ -369,8 +387,8 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
       const val = document.createElement('span');
       val.className = 'stat-val';
       val.textContent = s.games
-        ? s.wins + '/' + s.games + ' won · streak ' + s.streak + ' (best ' + s.bestStreak + ')'
-        : 'not played yet';
+        ? t('stats.line', { wins: s.wins, games: s.games, streak: s.streak, best: s.bestStreak })
+        : t('stats.none');
       row.append(name, val);
       statsBox.append(row);
     }
@@ -382,8 +400,30 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
       toggleLabel(vibeBtn, prefs.get('vibration'));
       const themes = typeof themeIds === 'function' ? themeIds() : THEME_IDS;
       buildOptions(themeRow, themes.length ? themes : THEME_IDS, 'theme', onThemeChange, (id) => getTheme(id).label);
-      buildOptions(speedRow, ['slow', 'normal', 'fast'], 'speed', onSpeedChange, cap);
-      buildOptions(botRow, ['easy', 'normal', 'hard'], 'botLevel', null, cap);
+      const SPEED_KEY = { slow: 'speed.slow', normal: 'speed.normal', fast: 'speed.fast' };
+      const BOT_KEY = { easy: 'bot.easy', normal: 'bot.normal', hard: 'bot.hard' };
+      buildOptions(speedRow, ['slow', 'normal', 'fast'], 'speed', onSpeedChange, (v) => t(SPEED_KEY[v]));
+      buildOptions(botRow, ['easy', 'normal', 'hard'], 'botLevel', null, (v) => t(BOT_KEY[v]));
+      if (langRow && i18n) {
+        langRow.textContent = '';
+        for (const lang of i18n.langs) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'chip';
+          b.dataset.value = lang.id;
+          b.textContent = lang.label;
+          b.setAttribute('aria-pressed', String(i18n.lang === lang.id));
+          b.addEventListener('click', () => {
+            audio.sfx.tap();
+            i18n.setLang(lang.id);
+            for (const sib of langRow.children) {
+              sib.setAttribute('aria-pressed', String(sib.dataset.value === lang.id));
+            }
+            if (onLangChange) onLangChange(lang.id);
+          });
+          langRow.append(b);
+        }
+      }
       if (stats) renderStats(stats);
       if (resetBtn && !resetBtn.dataset.bound) {
         resetBtn.dataset.bound = '1';
@@ -407,7 +447,8 @@ function cap(s) {
  * Final standings. Rendered as an overlay so the canvas confetti keeps playing
  * behind it.
  */
-export function renderResult({ el, state, prefs, humanId }) {
+export function renderResult({ el, state, prefs, humanId, i18n = null }) {
+  const t = i18n ? (k, v) => i18n.t(k, v) : null;
   const list = el.querySelector('[data-result="list"]');
   const headline = el.querySelector('[data-result="headline"]');
   const sub = el.querySelector('[data-result="sub"]');
@@ -417,11 +458,18 @@ export function renderResult({ el, state, prefs, humanId }) {
   const winner = ordered[0];
   const human = humanId === null || humanId === undefined ? null : state.players[humanId];
 
-  if (human && human.rank === 1) headline.textContent = 'You win!';
-  else if (human) headline.textContent = 'You finished ' + ordinal(human.rank);
-  else headline.textContent = winner.name + ' wins!';
-
-  sub.textContent = winner.name + ' brought all 4 tokens home in ' + state.turnCount + ' turns';
+  if (t) {
+    if (human && human.rank === 1) headline.textContent = t('result.youWin');
+    else if (human) headline.textContent = t('result.youPlaced', { rank: ordinal(human.rank) });
+    else headline.textContent = t('result.wins', { name: winner.name });
+    sub.textContent = t('result.sub', { name: winner.name, turns: state.turnCount });
+  } else {
+    // English fallback keeps exact parity with the translated branch.
+    if (human && human.rank === 1) headline.textContent = 'You win!';
+    else if (human) headline.textContent = 'You finished ' + ordinal(human.rank);
+    else headline.textContent = winner.name + ' wins!';
+    sub.textContent = winner.name + ' brought all 4 tokens home in ' + state.turnCount + ' turns';
+  }
 
   list.textContent = '';
   for (const p of ordered) {
@@ -440,11 +488,13 @@ export function renderResult({ el, state, prefs, humanId }) {
 
     const name = document.createElement('span');
     name.className = 'rank-name';
-    name.textContent = p.name + (p.type === PLAYER_TYPE.BOT ? ' (bot)' : '');
+    name.textContent = p.name + (p.type === PLAYER_TYPE.BOT ? ' (' + (t ? t('common.bot') : 'BOT') + ')' : '');
 
     const stat = document.createElement('span');
     stat.className = 'rank-stat';
-    stat.textContent = p.finished + '/4 home · ' + p.captures + ' captures';
+    stat.textContent = t
+      ? t('result.rankStat', { home: p.finished, captures: p.captures })
+      : p.finished + '/4 home · ' + p.captures + ' captures';
 
     row.append(pos, dot, name, stat);
     list.append(row);
@@ -471,4 +521,24 @@ function timeAgo(ts) {
   const h = Math.round(m / 60);
   if (h < 24) return h + 'h ago';
   return Math.round(h / 24) + 'd ago';
+}
+
+/* ─────────────────────── static markup translation ──────────────────── */
+
+/**
+ * Translate every `[data-i18n]` node under `root`.
+ * `data-i18n` fills textContent, `data-i18n-aria` fills aria-label.
+ * Call once at boot and again whenever the language changes.
+ */
+export function translateDom(root, t) {
+  for (const el of root.querySelectorAll('[data-i18n]')) {
+    const key = el.getAttribute('data-i18n');
+    const text = t(key);
+    if (text && text !== key) el.textContent = text;
+  }
+  for (const el of root.querySelectorAll('[data-i18n-aria]')) {
+    const key = el.getAttribute('data-i18n-aria');
+    const text = t(key);
+    if (text && text !== key) el.setAttribute('aria-label', text);
+  }
 }

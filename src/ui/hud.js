@@ -10,7 +10,8 @@ import { EV } from '../engine/rules.js';
 import { EVENTS } from '../game/events.js';
 import { getTheme, playerPalette } from '../render/board.js';
 
-export function createHud({ root, bus, prefs }) {
+export function createHud({ root, bus, prefs, i18n }) {
+  const t = i18n ? (k, v) => i18n.t(k, v) : (k) => k;
   const banner = root.querySelector('[data-hud="banner"]');
   const panels = root.querySelector('[data-hud="panels"]');
   const diceValue = root.querySelector('[data-hud="dice"]');
@@ -77,10 +78,10 @@ export function createHud({ root, bus, prefs }) {
       c.home.textContent = player.finished + '/' + TOKENS_PER_PLAYER;
       c.name.textContent = player.name;
       const bits = [];
-      if (player.type === PLAYER_TYPE.BOT) bits.push('BOT');
-      if (player.rank === 1) bits.push('WINNER');
+      if (player.type === PLAYER_TYPE.BOT) bits.push(t('common.bot'));
+      if (player.rank === 1) bits.push(t('common.winner').toUpperCase());
       else if (player.rank > 1) bits.push(ordinal(player.rank));
-      else if (active) bits.push('PLAYING');
+      else if (active) bits.push(t('common.play').toUpperCase());
       c.sub.textContent = bits.join(' · ');
     }
     if (diceValue) diceValue.textContent = state.dice ? String(state.dice) : '–';
@@ -96,9 +97,9 @@ export function createHud({ root, bus, prefs }) {
   }
 
   function turnText(player) {
-    if (!player) return 'Game over';
-    if (player.type === PLAYER_TYPE.BOT) return player.name + ' is thinking…';
-    return player.name + "'s turn";
+    if (!player) return t('game.over');
+    const key = player.type === PLAYER_TYPE.BOT ? 'game.thinking' : 'game.yourTurn';
+    return t(key, { name: player.name });
   }
 
   function setAccent(color) {
@@ -124,37 +125,25 @@ export function createHud({ root, bus, prefs }) {
     update(state);
   });
 
-  bus.on(EV.SIX, (p) => {
-    say('SIX! Roll again', 'good');
-    void p;
-  });
+  const nameOf = (playerId) => {
+    const player = state && state.players[playerId];
+    return player ? player.name : '';
+  };
+
+  bus.on(EV.SIX, () => say(t('game.six'), 'good'));
 
   bus.on(EV.EXTRA_TURN, (p) => {
-    say(p.reason === 'capture' ? 'Captured! Roll again' : 'Extra turn!', 'good');
+    say(t(p.reason === 'capture' ? 'game.captured' : 'game.extra'), 'good');
   });
 
-  bus.on(EV.TOKEN_CAPTURED, (p) => {
-    const victim = state && state.players[p.playerId];
-    say((victim ? victim.name : 'A token') + ' sent home!', 'warn');
-  });
-
-  bus.on(EV.THREE_SIXES, () => say('Three sixes — turn lost', 'warn'));
-  bus.on(EV.NO_MOVES, (p) => {
-    const player = state && state.players[p.playerId];
-    say('No moves for ' + (player ? player.name : 'player'), 'muted');
-  });
-
-  bus.on(EV.TOKEN_FINISHED, (p) => {
-    const player = state && state.players[p.playerId];
-    say((player ? player.name : 'Player') + ' brought a token home!', 'good');
-  });
-
-  bus.on(EV.PLAYER_FINISHED, (p) => {
-    const player = state && state.players[p.playerId];
-    say((player ? player.name : 'Player') + ' finished ' + ordinal(p.rank) + '!', 'good');
-  });
-
-  bus.on(EV.GAME_OVER, () => say('Game over', 'normal'));
+  bus.on(EV.TOKEN_CAPTURED, (p) => say(t('game.sentHome', { name: nameOf(p.playerId) }), 'warn'));
+  bus.on(EV.THREE_SIXES, () => say(t('game.threeSix'), 'warn'));
+  bus.on(EV.NO_MOVES, (p) => say(t('game.noMoves', { name: nameOf(p.playerId) }), 'muted'));
+  bus.on(EV.TOKEN_FINISHED, (p) => say(t('game.tokenHome', { name: nameOf(p.playerId) }), 'good'));
+  bus.on(EV.PLAYER_FINISHED, (p) =>
+    say(t('game.finished', { name: nameOf(p.playerId), rank: ordinal(p.rank) }), 'good')
+  );
+  bus.on(EV.GAME_OVER, () => say(t('game.over'), 'normal'));
 
   return { build, update, say, setTheme, setAccent };
 }

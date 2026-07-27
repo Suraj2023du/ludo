@@ -34,7 +34,7 @@ export const DEFAULT_TIMING = Object.freeze({
 
 export const SPEED_FACTOR = Object.freeze({ slow: 1.5, normal: 1, fast: 0.55 });
 
-const noop = () => {};
+const noop = () => { };
 
 /**
  * @param {object} opts
@@ -200,11 +200,12 @@ export function createController(opts) {
     if (!fromRemote) await send(rollAction(seat, value, ++actionSeq));
 
     const kinds = res.events.map((e) => e.type);
+    // Toasts carry a translation key: the controller never speaks a language.
     if (kinds.includes(EV.THREE_SIXES)) {
-      bus.emit(EVENTS.TOAST, { text: 'Three sixes! Turn lost', kind: 'warn' });
+      bus.emit(EVENTS.TOAST, { key: 'game.threeSix', kind: 'warn' });
       await wait(timing.pass);
     } else if (kinds.includes(EV.NO_MOVES)) {
-      bus.emit(EVENTS.TOAST, { text: 'No moves for ' + player.name, kind: 'info' });
+      bus.emit(EVENTS.TOAST, { key: 'game.noMoves', vars: { name: player.name }, kind: 'info' });
       await wait(timing.pass);
     }
   }

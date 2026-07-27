@@ -30,7 +30,9 @@ import { createEffects } from '../render/effects.js';
 
 const MAX_DPR = 2;
 
-export function createGameView({ canvas, bus, audio, prefs, catalog = null }) {
+export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n = null }) {
+  const label_tapToRoll = () => (i18n ? i18n.t('game.tapToRoll') : 'TAP TO ROLL');
+  const label_thinking = () => (i18n ? i18n.t('game.thinkingShort') : 'THINKING…');
   const ctx = canvas.getContext('2d', { alpha: false });
   const boardCache = createBoardCache();
   const tokens = createTokenLayer();
@@ -165,7 +167,7 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null }) {
     });
 
     if (player) {
-      const label = canRoll ? 'TAP TO ROLL' : player.type === 'bot' ? 'THINKING…' : '';
+      const label = canRoll ? label_tapToRoll() : player.type === 'bot' ? label_thinking() : '';
       if (label) {
         ctx.save();
         ctx.font = '600 ' + Math.max(10, Math.round(layout.cell * 0.62)) + 'px system-ui, sans-serif';
