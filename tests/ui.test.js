@@ -343,6 +343,42 @@ test('ui: completing a task lets you claim it from the modal', async () => {
   api.taskScreen.close();
 });
 
+test('ui: switching to Hindi translates the whole shell, not just labels', async () => {
+  const howto = doc.querySelector('[data-screen="howto"]');
+  const beforeRule = howto.querySelector('[data-i18n="howto.r1"]').textContent;
+  const settingsEl = doc.querySelector('[data-screen="settings"]');
+
+  api.router.show('settings', { silent: true });
+  api.settingsScreen.render(api.stats);
+  await tick(20);
+  const langRow = settingsEl.querySelector('[data-set="lang"]');
+  assert.equal(langRow.children.length, 2, 'both languages are offered');
+
+  langRow.querySelector('[data-value="hi"]').click();
+  await tick(30);
+
+  assert.equal(api.i18n.lang, 'hi');
+  assert.equal(doc.documentElement.getAttribute('lang'), 'hi');
+  const afterRule = howto.querySelector('[data-i18n="howto.r1"]').textContent;
+  assert.notEqual(afterRule, beforeRule, 'static markup was retranslated');
+  assert.match(afterRule, /[\u0900-\u097F]/, 'the rule text is Devanagari now');
+  assert.match(settingsEl.querySelector('[data-i18n="set.sound"]').textContent, /[\u0900-\u097F]/);
+  assert.equal(api.prefs.get('lang'), 'hi', 'the choice is persisted');
+
+  // in-game banner too
+  const session = api.startGame({ mode: 'vsComputer', count: 2, humanColor: 'red', names: {} });
+  session.controller.setTiming(INSTANT);
+  await tick(40);
+  assert.match(doc.querySelector('[data-hud="banner"]').textContent, /[\u0900-\u097F]/);
+
+  langRow.querySelector('[data-value="en"]').click();
+  await tick(20);
+  assert.equal(api.i18n.lang, 'en');
+  api.exitToMenu();
+  await tick(20);
+  assert.deepEqual(dom.console.errors, []);
+});
+
 test('ui: teardown — the DOM shim is removed from the process', () => {
   dom.restore();
   assert.equal(typeof globalThis.document, 'undefined');
