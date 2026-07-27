@@ -48,7 +48,7 @@ export function boot() {
     pause: createOverlay(document.querySelector('[data-overlay="pause"]')),
     result: createOverlay(document.querySelector('[data-overlay="result"]')),
     resumePrompt: createOverlay(document.querySelector('[data-overlay="resume"]')),
-    pass: createPassScreen({ el: document.querySelector('[data-overlay="pass"]'), bus, audio }),
+    pass: createPassScreen({ el: document.querySelector('[data-overlay="pass"]'), bus, audio, prefs }),
   };
 
   /** @type {{controller:object, mode:string, humanId:number|null, setup:object}|null} */

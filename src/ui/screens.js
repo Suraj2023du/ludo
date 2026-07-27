@@ -124,7 +124,7 @@ export function createOverlay(el) {
  * "Pass the phone to NAME" privacy screen. Resolves the controller's gate when
  * the next player taps.
  */
-export function createPassScreen({ el, bus, audio }) {
+export function createPassScreen({ el, bus, audio, prefs }) {
   const overlay = createOverlay(el);
   const nameEl = el.querySelector('[data-pass="name"]');
   const dotEl = el.querySelector('[data-pass="dot"]');
@@ -142,7 +142,7 @@ export function createPassScreen({ el, bus, audio }) {
   bus.on(EVENTS.PASS_DEVICE, (p) => {
     confirm = p.confirm;
     nameEl.textContent = p.name;
-    const pal = playerPalette(getTheme('classic'), p.color);
+    const pal = playerPalette(getTheme(prefs ? prefs.get('theme') : 'classic'), p.color);
     dotEl.style.background = pal.main;
     el.style.setProperty('--pass-color', pal.main);
     overlay.open();
