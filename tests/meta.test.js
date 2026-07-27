@@ -27,6 +27,7 @@ import {
 } from '../src/services/purchase.js';
 import { createI18n, LANGS } from '../src/i18n/index.js';
 import { createEventBus } from '../src/game/events.js';
+import { createRng } from '../src/engine/state.js';
 
 /**
  * Every test gets its own storage key. tests/ui.test.js boots the real app at
@@ -502,4 +503,119 @@ test('catalog: skin painters run for every item without throwing', async () => {
   }
   assert.ok(ctx.calls > 500, 'painters actually drew something: ' + ctx.calls);
   dom.restore();
+});
+
+/* ─────────────────────────────── rewards ─────────────────────────────── */
+
+test('rewards: a new player has one spin waiting, then a 4h cooldown', async () => {
+  const { createRewards, SPIN_COOLDOWN_MS } = await import('../src/meta/rewards.js');
+  const save = freshSave();
+  let clock = 1e12;
+  const wallet = createWallet({ save });
+  const r = createRewards({ save, wallet, now: () => clock });
+
+  assert.equal(r.canSpin(), true);
+  const first = r.spin(() => 0.99);
+  assert.ok(first && first.prize);
+  assert.equal(r.canSpin(), false);
+  assert.ok(r.spinCooldownLeft() > 0);
+
+  clock += SPIN_COOLDOWN_MS + 1;
+  assert.equal(r.canSpin(), true);
+  assert.equal(r.spin(() => 0.5) !== null, true);
+
+  r.addSpin(2);
+  assert.equal(r.canSpin(), true);
+  assert.equal(r.bankedSpins, 2);
+});
+
+test('rewards: spinning pays the prize and reports the segment', async () => {
+  const { createRewards, SPIN_PRIZES } = await import('../src/meta/rewards.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const r = createRewards({ save, bus, wallet });
+
+  const seen = [];
+  bus.on('rewards:spin', (e) => seen.push(e));
+  const coinsBefore = wallet.coins;
+  const gemsBefore = wallet.diamonds;
+
+  const res = r.spin(() => 0);
+  assert.equal(res.index, 0);
+  assert.equal(seen.length, 1);
+  const prize = SPIN_PRIZES[0];
+  if (prize.kind === 'coins') assert.equal(wallet.coins, coinsBefore + prize.amount);
+  else assert.equal(wallet.diamonds, gemsBefore + prize.amount);
+});
+
+test('rewards: the wheel is weighted so the jackpot stays rare', async () => {
+  const { createRewards, SPIN_PRIZES } = await import('../src/meta/rewards.js');
+  const save = freshSave();
+  let clock = 1e12;
+  const r = createRewards({ save, wallet: createWallet({ save }), now: () => clock });
+  const rng = createRng(4242);
+  const counts = new Array(SPIN_PRIZES.length).fill(0);
+
+  for (let i = 0; i < 2000; i++) {
+    r.addSpin(1);
+    const out = r.spin(rng);
+    counts[out.index]++;
+  }
+  const jackpot = SPIN_PRIZES.findIndex((p) => p.jackpot);
+  assert.ok(counts[jackpot] > 0, 'the jackpot is reachable');
+  assert.ok(counts[jackpot] / 2000 < 0.02, 'jackpot rate stays low: ' + counts[jackpot] / 2000);
+  assert.ok(counts.every((c) => c > 0), 'every segment can be hit');
+});
+
+test('rewards: the daily ladder advances, breaks and cannot be double-claimed', async () => {
+  const { createRewards, DAILY_LADDER } = await import('../src/meta/rewards.js');
+  const save = freshSave();
+  let clock = Date.parse('2026-03-01T10:00:00Z');
+  const wallet = createWallet({ save });
+  const r = createRewards({ save, wallet, now: () => clock });
+
+  assert.equal(r.canClaimDaily(), true);
+  const d1 = r.claimDaily();
+  assert.equal(d1.day, 1);
+  assert.equal(r.canClaimDaily(), false);
+  assert.equal(r.claimDaily(), null);
+
+  clock += 86400000; // next day
+  const d2 = r.claimDaily();
+  assert.equal(d2.day, 2);
+  assert.equal(r.streak, 2);
+
+  clock += 86400000 * 3; // missed days
+  const d3 = r.claimDaily();
+  assert.equal(d3.day, 1, 'the ladder restarts after a miss');
+  assert.equal(r.streak, 1);
+  assert.equal(DAILY_LADDER.length, 7);
+});
+
+test('rewards: lucky-month stamps pay a bonus every seventh day', async () => {
+  const { createRewards } = await import('../src/meta/rewards.js');
+  const save = freshSave();
+  let clock = Date.parse('2026-05-01T08:00:00Z');
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const r = createRewards({ save, bus, wallet, now: () => clock });
+
+  let bonuses = 0;
+  bus.on('rewards:lucky', () => bonuses++);
+  for (let i = 0; i < 14; i++) {
+    r.stampLucky();
+    r.stampLucky(); // same day twice → one stamp
+    clock += 86400000;
+  }
+  assert.equal(r.luckyMonth().count, 14);
+  assert.equal(bonuses, 2);
+});
+
+test('rewards: countdown formatting', async () => {
+  const { formatCountdown } = await import('../src/meta/rewards.js');
+  assert.equal(formatCountdown(0), '0s');
+  assert.equal(formatCountdown(45000), '45s');
+  assert.equal(formatCountdown(125000), '2m 5s');
+  assert.equal(formatCountdown(3 * 3600000 + 720000), '3h 12m');
 });

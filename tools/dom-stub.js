@@ -420,12 +420,12 @@ class Element extends Node {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
-      .map(parseSimpleSelector);
+      .map(parseChain);
     const out = [];
     const walk = (node) => {
       for (const child of node.childNodes) {
         if (child.nodeType !== 1) continue;
-        if (groups.some((g) => matches(child, g))) out.push(child);
+        if (groups.some((chain) => matchesChain(child, chain))) out.push(child);
         walk(child);
       }
     };
@@ -436,6 +436,27 @@ class Element extends Node {
 
 function camelToDash(s) {
   return s.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+}
+
+/** "a b .c" → [compound, compound, compound] (descendant combinator only). */
+function parseChain(sel) {
+  return sel
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(parseSimpleSelector);
+}
+
+/** The last compound must match the element; earlier ones must match ancestors. */
+function matchesChain(el, chain) {
+  if (!chain.length) return false;
+  if (!matches(el, chain[chain.length - 1])) return false;
+  let i = chain.length - 2;
+  let node = el.parentElement;
+  while (i >= 0 && node) {
+    if (matches(node, chain[i])) i--;
+    node = node.parentElement;
+  }
+  return i < 0;
 }
 
 /** Supports: tag, #id, .class, [attr], [attr="value"] and combinations. */
@@ -453,6 +474,7 @@ function parseSimpleSelector(sel) {
 }
 
 function matches(el, spec) {
+  if (!el || el.nodeType !== 1) return false;
   if (spec.tag && el.tagName !== spec.tag) return false;
   if (spec.id && el.getAttribute('id') !== spec.id) return false;
   for (const c of spec.classes) if (!el.classList.contains(c)) return false;

@@ -182,5 +182,135 @@ test('ui: exit to menu tears the session down cleanly', async () => {
   assert.equal(api.session, null);
   assert.equal(api.resume.has(), false, 'the snapshot is cleared on exit');
   assert.deepEqual(dom.console.errors, []);
+});
+
+/* ─────────────────── Wave 4: skin shop, shop, spin, ads ──────────────── */
+
+test('ui: the skin shop opens with five tabs and a full grid', async () => {
+  api.skinShop.open('dice');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="skins"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelectorAll('[data-tab]').length, 5);
+  assert.ok(el.querySelectorAll('[data-skin]').length >= 9, 'dice grid');
+
+  // every tab renders something
+  for (const kind of ['frame', 'theme', 'token', 'chatbox']) {
+    el.querySelector('[data-tab="' + kind + '"]').click();
+    await tick(10);
+    assert.ok(el.querySelectorAll('[data-skin]').length >= 9, kind + ' grid');
+  }
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: buying a skin with coins equips it and updates the board', async () => {
+  api.wallet._set(999999, 999);
+  api.skinShop.open('dice');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="skins"]');
+  const card = el.querySelector('[data-skin="dice.cricket"]');
+  const before = api.wallet.coins;
+  card.querySelector('.skin-action').click();
+  await tick(20);
+
+  assert.equal(api.catalog.owned('dice.cricket'), true);
+  assert.ok(api.wallet.coins < before, 'coins were spent');
+  assert.equal(api.catalog.equippedId('dice'), 'dice.cricket');
+
+  // equipping a theme also repaints the board
+  api.skinShop.open('theme');
+  await tick(10);
+  el.querySelector('[data-skin="theme.midnight"] .skin-action').click();
+  await tick(20);
+  assert.equal(api.prefs.get('theme'), 'midnight');
+  api.skinShop.close();
+});
+
+test('ui: an ad-unlock skin shows progress and unlocks after enough videos', async () => {
+  api.skinShop.open('dice');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="skins"]');
+  const card = el.querySelector('[data-skin="dice.frost"]');
+  assert.match(card.textContent, /0\/20/, 'progress is shown');
+  assert.match(card.querySelector('.skin-action').textContent, /Watch/i);
+
+  // fast-forward the ad and the counter
+  const need = api.catalog.progress('dice.frost').need;
+  api.catalog.addAdProgress('dice.frost', need);
+  api.skinShop.render();
+  await tick(10);
+  assert.equal(api.catalog.owned('dice.frost'), true);
+  api.skinShop.close();
+});
+
+test('ui: the shop refuses purchases and offers the free route instead', async () => {
+  api.shopScreen.open('packs');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="shop"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelectorAll('[data-tab]').length, 3);
+  assert.ok(el.querySelectorAll('[data-product]').length >= 4);
+  assert.match(el.querySelector('.shop-notice').textContent, /not enabled/i);
+
+  const refusals = [];
+  api.bus.on('shop:refused', (e) => refusals.push(e));
+  const before = api.wallet.coins;
+  el.querySelector('[data-product="pack.start.coins"] .pack-buy').click();
+  await tick(40);
+  assert.equal(refusals.length, 1);
+  assert.equal(api.wallet.coins >= before, true, 'a refused purchase never grants coins');
+  api.shopScreen.close();
+});
+
+test('ui: a rewarded video runs a real countdown and pays out', async () => {
+  const before = api.wallet.coins;
+  const adEl = doc.querySelector('[data-overlay="ad"]');
+  const watching = api.ads.watch('getCoins');
+  await tick(30);
+  assert.equal(adEl.classList.contains('is-open'), true, 'the ad overlay is showing');
+  const res = await watching;
+  assert.equal(res.completed, true);
+  assert.equal(adEl.classList.contains('is-open'), false);
+  assert.ok(api.wallet.coins > before, 'the reward landed');
+});
+
+test('ui: cancelling a rewarded video pays nothing', async () => {
+  const before = api.wallet.coins;
+  const adEl = doc.querySelector('[data-overlay="ad"]');
+  const watching = api.ads.watch('freeDiamond');
+  await tick(30);
+  adEl.querySelector('[data-ad="skip"]').click();
+  const res = await watching;
+  assert.equal(res.completed, false);
+  assert.equal(api.wallet.coins, before);
+});
+
+test('ui: the spin wheel spins, pays out and then shows the cooldown', async () => {
+  const el = doc.querySelector('[data-overlay="spin"]');
+  api.spinScreen.open();
+  await tick(20);
+  assert.equal(el.classList.contains('is-open'), true);
+
+  const go = el.querySelector('[data-spin="go"]');
+  if (go.disabled) {
+    assert.match(el.querySelector('[data-spin="status"]').textContent, /spin/i);
+  } else {
+    const before = api.wallet.coins + api.wallet.diamonds;
+    let paid = null;
+    api.bus.on('rewards:spin', (e) => {
+      paid = e;
+    });
+    go.click();
+    await tick(3200);
+    assert.ok(paid, 'a prize was awarded');
+    assert.ok(api.wallet.coins + api.wallet.diamonds > before);
+    assert.equal(go.disabled, true, 'the wheel goes on cooldown');
+  }
+  api.spinScreen.close();
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: teardown — the DOM shim is removed from the process', () => {
   dom.restore();
+  assert.equal(typeof globalThis.document, 'undefined');
 });
