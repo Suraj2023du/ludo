@@ -26,6 +26,10 @@ import { createI18n } from './i18n/index.js';
 import { createGameView } from './ui/game.js';
 import { createHud } from './ui/hud.js';
 import { createHome } from './ui/home.js';
+import { createSkinShop } from './ui/skins.js';
+import { createAdPresenter, createShopScreen } from './ui/shop.js';
+import { createSpinScreen } from './ui/spin.js';
+import { createRewards } from './meta/rewards.js';
 import {
   createOverlay,
   createPassScreen,
@@ -53,6 +57,7 @@ export function boot() {
   const adProvider = new LocalAdProvider();
   const ads = createAdService({ provider: adProvider, save, bus, wallet, account });
   const shop = createPurchaseService({ provider: new DisabledPurchaseProvider(), bus, wallet, account });
+  const rewards = createRewards({ save, bus, wallet, account });
   const i18n = createI18n({ lang: prefs.get('lang') || 'en', onChange: (l) => prefs.set('lang', l) });
 
   const router = createRouter({ root: app, audio });
@@ -124,6 +129,49 @@ export function boot() {
     },
   });
 
+  /* ───────────────────── store, skins, spin, rewarded ads ─────────────── */
+
+  const adPresenter = createAdPresenter({
+    el: document.querySelector('[data-overlay="ad"]'),
+    i18n,
+    audio,
+  });
+  adProvider.setPresenter(adPresenter);
+
+  const shopScreen = createShopScreen({
+    el: document.querySelector('[data-overlay="shop"]'),
+    bus,
+    i18n,
+    shop,
+    wallet,
+    account,
+    ads,
+    audio,
+  });
+
+  const skinShop = createSkinShop({
+    el: document.querySelector('[data-overlay="skins"]'),
+    bus,
+    i18n,
+    catalog,
+    wallet,
+    ads,
+    audio,
+    prefs,
+    account,
+    onNeedCoins: (kind) => shopScreen.open(kind === 'diamonds' ? 'diamonds' : 'coins'),
+    onThemeEquip: (id) => applyTheme(id),
+  });
+
+  const spinScreen = createSpinScreen({
+    el: document.querySelector('[data-overlay="spin"]'),
+    bus,
+    i18n,
+    rewards,
+    ads,
+    audio,
+  });
+
   /* ─────────────────────────────── the lobby ──────────────────────────── */
 
   const PLAYABLE = { vsComputer: 1, passPlay: 1, quickMatch: 1 };
@@ -156,14 +204,38 @@ export function boot() {
         }
         comingSoon(id);
       },
-      onRail: (id) => comingSoon(id),
-      onNav: (id) => comingSoon(id),
+      onRail: (id) => {
+        if (id === 'shop') shopScreen.open('packs');
+        else if (id === 'removeAds') shopScreen.open('packs');
+        else if (id === 'spinEvent') spinScreen.open();
+        else if (id === 'vip') shopScreen.open('packs');
+        else comingSoon(id);
+      },
+      onNav: (id) => {
+        if (id === 'skins') skinShop.open('dice');
+        else if (id === 'spin') spinScreen.open();
+        else if (id === 'getCoins') shopScreen.watchForCoins('getCoins');
+        else comingSoon(id);
+      },
       onProfile: () => comingSoon('profile'),
-      onShop: () => comingSoon('shop'),
+      onShop: (tab) => shopScreen.open(tab === 'diamonds' ? 'diamonds' : 'coins'),
       onSettings: openSettings,
       onMissing: (id) => comingSoon(String(id || 'that')),
     },
   });
+
+  /** Badges on the rail and the bottom nav (claimable rewards, free ads left). */
+  function refreshBadges() {
+    const s = rewards.summary();
+    home.setBadge('nav', 'spin', s.canSpin ? '!' : 0);
+    home.setBadge('nav', 'getCoins', ads.remaining('getCoins') || 0);
+    home.setBadge('rail', 'spinEvent', s.canClaimDaily ? '1' : 0);
+  }
+
+  bus.on('rewards:spin', refreshBadges);
+  bus.on('rewards:spins', refreshBadges);
+  bus.on('rewards:daily', refreshBadges);
+  bus.on('ads:reward', refreshBadges);
 
   // Any remaining legacy [data-go] buttons (how-to shortcuts) still work.
   for (const btn of app.querySelectorAll('[data-go]')) {
@@ -437,6 +509,7 @@ export function boot() {
   /* ─────────────────────────────── go ─────────────────────────────────── */
 
   applyTheme(prefs.get('theme'));
+  refreshBadges();
   audio.setEnabled(prefs.get('sound'));
   audio.setVibration(prefs.get('vibration'));
   refreshMenu();
@@ -473,6 +546,10 @@ export function boot() {
     ads,
     adProvider,
     shop,
+    shopScreen,
+    skinShop,
+    spinScreen,
+    rewards,
     i18n,
     startGame,
     exitToMenu,
