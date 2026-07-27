@@ -41,6 +41,7 @@ import {
   createToaster,
   renderResult,
   renderResumePrompt,
+  translateDom,
 } from './ui/screens.js';
 
 export function boot() {
@@ -66,17 +67,17 @@ export function boot() {
   const i18n = createI18n({ lang: prefs.get('lang') || 'en', onChange: (l) => prefs.set('lang', l) });
 
   const router = createRouter({ root: app, audio });
-  const toaster = createToaster({ host: document.getElementById('toasts'), bus });
+  const toaster = createToaster({ host: document.getElementById('toasts'), bus, i18n });
   const gameScreen = router.el('game');
   const canvas = gameScreen.querySelector('[data-game="canvas"]');
-  const view = createGameView({ canvas, bus, audio, prefs, catalog });
-  const hud = createHud({ root: gameScreen, bus, prefs });
+  const view = createGameView({ canvas, bus, audio, prefs, catalog, i18n });
+  const hud = createHud({ root: gameScreen, bus, prefs, i18n });
 
   const overlays = {
     pause: createOverlay(document.querySelector('[data-overlay="pause"]')),
     result: createOverlay(document.querySelector('[data-overlay="result"]')),
     resumePrompt: createOverlay(document.querySelector('[data-overlay="resume"]')),
-    pass: createPassScreen({ el: document.querySelector('[data-overlay="pass"]'), bus, audio, prefs }),
+    pass: createPassScreen({ el: document.querySelector('[data-overlay="pass"]'), bus, audio, prefs, i18n }),
   };
 
   /** @type {{controller:object, mode:string, humanId:number|null, setup:object}|null} */
@@ -109,6 +110,7 @@ export function boot() {
     el: router.el('setup'),
     prefs,
     audio,
+    i18n,
     onStart: (setup) => startGame(setup),
     onBack: () => router.show('menu'),
   });
@@ -117,6 +119,8 @@ export function boot() {
     el: router.el('settings'),
     prefs,
     audio,
+    i18n,
+    onLangChange: () => retranslate(),
     // only board themes the player actually owns are offered here
     themeIds: () =>
       catalog
@@ -130,9 +134,18 @@ export function boot() {
     onReset: () => {
       stats.reset();
       settingsScreen.renderStats(stats);
-      toaster.toast('Stats cleared', 'info');
+      toaster.toast(i18n.t('stats.cleared'), 'info');
     },
   });
+
+  /** Re-render every piece of chrome after a language switch. */
+  function retranslate() {
+    translateDom(document, (k, v) => i18n.t(k, v));
+    settingsScreen.render(stats);
+    setupScreen.render();
+    if (session) hud.update();
+    view.resize();
+  }
 
   /* ───────────────────── store, skins, spin, rewarded ads ─────────────── */
 
@@ -269,6 +282,17 @@ export function boot() {
     home.setBadge('rail', 'spinEvent', s.canSpin ? '1' : 0);
     badgesBusy = false;
   }
+
+  // Global money/ad feedback, so no individual screen has to explain a failure.
+  bus.on('wallet:insufficient', (p) => {
+    toaster.toast(
+      i18n.t('wallet.notEnough', {
+        kind: p.kind === 'diamonds' ? i18n.t('common.diamonds') : i18n.t('common.coins'),
+      }),
+      'warn'
+    );
+  });
+  bus.on('ads:unavailable', () => toaster.toast(i18n.t('ads.limit'), 'info'));
 
   for (const evt of [
     'rewards:spin',
@@ -466,7 +490,7 @@ export function boot() {
     rewards.stampLucky();
     refreshBadges();
 
-    const summary = renderResult({ el: resultEl, state, prefs, humanId });
+    const summary = renderResult({ el: resultEl, state, prefs, humanId, i18n });
     const theme = getTheme(prefs.get('theme'));
     view.celebrate([
       playerPalette(theme, summary.winner.color).main,
@@ -595,6 +619,9 @@ export function boot() {
   /* ─────────────────────────────── go ─────────────────────────────────── */
 
   applyTheme(prefs.get('theme'));
+  translateDom(document, (k, v) => i18n.t(k, v));
+  document.documentElement.setAttribute('lang', i18n.lang);
+  i18n.subscribe((lang) => document.documentElement.setAttribute('lang', lang));
   refreshBadges();
   audio.setEnabled(prefs.get('sound'));
   audio.setVibration(prefs.get('vibration'));
@@ -625,6 +652,9 @@ export function boot() {
     router,
     view,
     home,
+    settingsScreen,
+    setupScreen,
+    retranslate,
     save,
     account,
     wallet,

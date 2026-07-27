@@ -80,11 +80,6 @@ body {
   text-align: center;
 }
 
-.screen--menu {
-  justify-content: center;
-  gap: 18px;
-}
-
 .screen--sheet {
   gap: 14px;
 }
@@ -117,13 +112,6 @@ body {
   transform: rotate(45deg);
   margin: 0 auto 18px;
   animation: logo-spin 6s ease-in-out infinite;
-}
-
-.logo--sm {
-  width: 56px;
-  height: 56px;
-  gap: 4px;
-  margin-bottom: 10px;
 }
 
 .logo-cell {
@@ -171,26 +159,10 @@ body {
   color: var(--accent);
 }
 
-.brand {
-  text-align: center;
-}
-
 .muted {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 14px;
-}
-
-.footnote {
-  margin: 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.footnote .dot {
-  opacity: 0.5;
-  margin: 0 6px;
 }
 
 /* ──────────────────────────────── buttons ────────────────────────────── */
@@ -234,34 +206,6 @@ body {
   align-items: center;
   text-align: center;
   width: 100%;
-}
-
-.btn-title {
-  font-size: 17px;
-}
-
-.btn-sub {
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.72;
-}
-
-.menu {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.menu-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.menu-row .btn {
-  align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
 .icon-btn {
@@ -847,10 +791,6 @@ input:focus-visible {
   .btn {
     min-height: 44px;
     padding: 9px 14px;
-  }
-
-  .btn-sub {
-    display: none;
   }
 }
 
