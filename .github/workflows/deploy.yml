@@ -34,6 +34,9 @@ jobs:
       - name: Boot check (zero console errors)
         run: node tools/boot-check.js
 
+      - name: UI playthrough (capture, endgame, result screen)
+        run: node tools/playthrough.js
+
       - name: Payload budget (< 500 KB)
         run: node tools/size.js
 

@@ -11,7 +11,9 @@
     "serve": "node tools/serve.js",
     "size": "node tools/size.js",
     "icons": "node tools/make-icons.js",
-    "boot": "node tools/boot-check.js"
+    "boot": "node tools/boot-check.js",
+    "playthrough": "node tools/playthrough.js",
+    "verify": "node --test tests/ && node tools/boot-check.js && node tools/playthrough.js && node tools/size.js"
   },
   "engines": {
     "node": ">=18"

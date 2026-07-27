@@ -34,8 +34,12 @@ npm test                 # node --test tests/    (94 tests)
 npm run test:rules       # ruleset unit tests only
 npm run test:sim         # 200 simulated full games
 npm run boot             # boots index.html in Node, fails on any console error
+npm run playthrough      # plays real games through the real UI (capture + endgame)
 npm run size             # first-load payload report vs the 500 KB budget
 npm run icons            # regenerate the two PWA icons (no image tools needed)
+npm run verify           # all of the above, in order
+
+FULL=1 npm run playthrough   # also plays one COMPLETE 4-player game (~45s)
 ```
 
 | suite                 | what it proves                                                        |
