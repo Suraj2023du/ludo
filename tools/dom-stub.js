@@ -377,6 +377,13 @@ class Element extends Node {
     return this.textContent;
   }
 
+  /** Parses the markup, like a browser, so inline SVG icons work in tests. */
+  set innerHTML(html) {
+    this.childNodes = [];
+    const frag = parseHtml(String(html), this.ownerDocument);
+    for (const child of [...frag.childNodes]) this.appendChild(child);
+  }
+
   focus() {
     this.ownerDocument.activeElement = this;
   }

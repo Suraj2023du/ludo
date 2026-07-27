@@ -99,14 +99,22 @@ try {
 if (api) {
   await dom.tick(60);
 
-  // menu is reachable and the buttons are wired
+  // the lobby is reachable and fully built
   api.router.show('menu', { silent: true });
-  const menuButtons = dom.document.querySelectorAll('[data-go]');
-  if (menuButtons.length >= 5) ok('menu has ' + menuButtons.length + ' navigation buttons');
-  else bad('expected 5 menu buttons, found ' + menuButtons.length);
+  const tiles = dom.document.querySelectorAll('[data-tile]');
+  const rail = dom.document.querySelectorAll('[data-rail]');
+  const nav = dom.document.querySelectorAll('[data-nav]');
+  if (tiles.length >= 8) ok('lobby has ' + tiles.length + ' mode tiles');
+  else bad('expected 8 mode tiles, found ' + tiles.length);
+  if (rail.length >= 6) ok('lobby rail has ' + rail.length + ' entries');
+  else bad('expected 6 rail entries, found ' + rail.length);
+  if (nav.length === 5) ok('bottom nav has 5 entries');
+  else bad('expected 5 nav entries, found ' + nav.length);
+  if (dom.document.querySelector('[data-home="coinval"]').textContent.length > 0) ok('coin balance rendered');
+  else bad('coin balance not rendered');
 
   // Vs Computer → setup screen renders names for 4 seats
-  menuButtons[0].click();
+  dom.document.querySelector('[data-tile="vsComputer"]').click();
   await dom.tick(20);
   if (api.router.current === 'setup') ok('menu → setup');
   else bad('menu button did not open the setup screen');

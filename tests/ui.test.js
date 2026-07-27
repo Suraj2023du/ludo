@@ -44,12 +44,15 @@ test('ui: index.html boots and exposes the app', () => {
   assert.deepEqual(dom.console.errors, []);
 });
 
-test('ui: menu navigates to setup and renders one name row per seat', async () => {
+test('ui: the lobby is fully built and navigates to setup', async () => {
   api.router.show('menu', { silent: true });
-  const buttons = doc.querySelectorAll('[data-go]');
-  assert.equal(buttons.length, 5);
+  assert.ok(doc.querySelectorAll('[data-tile]').length >= 8, 'mode tiles');
+  assert.ok(doc.querySelectorAll('[data-rail]').length >= 6, 'event rail');
+  assert.equal(doc.querySelectorAll('[data-nav]').length, 5, 'bottom nav');
+  assert.match(doc.querySelector('[data-home="coinval"]').textContent, /[\d,.KLCr]/);
+  assert.ok(Number(doc.querySelector('[data-home="onlineCount"]').textContent.replace(/[^\d]/g, '')) > 1000);
 
-  buttons[0].click(); // Vs Computer
+  doc.querySelector('[data-tile="vsComputer"]').click();
   await tick(20);
   assert.equal(api.router.current, 'setup');
   assert.equal(doc.querySelector('[data-setup="names"]').children.length, 4);
