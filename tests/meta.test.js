@@ -619,3 +619,118 @@ test('rewards: countdown formatting', async () => {
   assert.equal(formatCountdown(125000), '2m 5s');
   assert.equal(formatCountdown(3 * 3600000 + 720000), '3h 12m');
 });
+
+/* ──────────────────────────────── tasks ──────────────────────────────── */
+
+test('tasks: progress, claiming, points and milestones', async () => {
+  const { createTasks, DAILY_TASKS, MILESTONES } = await import('../src/meta/tasks.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const tasks = createTasks({ save, bus, wallet });
+
+  assert.equal(tasks.daily().length, DAILY_TASKS.length);
+  assert.equal(tasks.growth().length > 0, true);
+
+  assert.equal(tasks.claim('capture5').reason, 'incomplete');
+  tasks.track('capture5', 3);
+  assert.equal(tasks.have('capture5'), 3);
+  tasks.track('capture5', 9);
+  assert.equal(tasks.have('capture5'), 5, 'progress is capped at the target');
+
+  const coins = wallet.coins;
+  const res = tasks.claim('capture5');
+  assert.equal(res.ok, true);
+  assert.equal(wallet.coins, coins + res.reward.amount);
+  assert.equal(tasks.claim('capture5').reason, 'claimed');
+  assert.equal(tasks.points, 15);
+
+  // milestone gating
+  assert.equal(tasks.claimMilestone(MILESTONES[0].pts).reason, 'locked');
+  for (const id of ['win1', 'play3', 'quick3', 'spin3', 'six10']) {
+    const def = tasks.daily().find((x) => x.id === id);
+    tasks.track(id, def.target);
+    tasks.claim(id);
+  }
+  assert.ok(tasks.points >= MILESTONES[0].pts);
+  const gems = wallet.diamonds;
+  const ms = tasks.claimMilestone(MILESTONES[0].pts);
+  assert.equal(ms.ok, true);
+  assert.equal(wallet.diamonds, gems + MILESTONES[0].reward.amount);
+  assert.equal(tasks.claimMilestone(MILESTONES[0].pts).reason, 'claimed');
+});
+
+test('tasks: the bus feeds progress automatically for my own seat only', async () => {
+  const { createTasks } = await import('../src/meta/tasks.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const tasks = createTasks({ save, bus, wallet: createWallet({ save }), isMe: (id) => id === 0 });
+
+  bus.emit('dice:rolled', { playerId: 0, value: 6 });
+  bus.emit('dice:rolled', { playerId: 1, value: 6 });
+  bus.emit('dice:rolled', { playerId: 0, value: 3 });
+  assert.equal(tasks.have('six10'), 1, 'only my sixes count');
+
+  bus.emit('token:captured', { byPlayerId: 0, playerId: 2 });
+  bus.emit('token:captured', { byPlayerId: 3, playerId: 0 });
+  assert.equal(tasks.have('capture5'), 1);
+
+  bus.emit('token:finished', { playerId: 0 });
+  assert.equal(tasks.have('home4'), 1);
+
+  bus.emit('game:over', { winner: 0, mode: 'quickMatch' });
+  assert.equal(tasks.have('play3'), 1);
+  assert.equal(tasks.have('win1'), 1);
+  assert.equal(tasks.have('quick3'), 1);
+});
+
+test('tasks: daily tasks reset at midnight, growth tasks do not', async () => {
+  const { createTasks } = await import('../src/meta/tasks.js');
+  const save = freshSave();
+  let clock = Date.parse('2026-06-10T12:00:00Z');
+  const tasks = createTasks({ save, wallet: createWallet({ save }), now: () => clock });
+
+  tasks.track('capture5', 4);
+  tasks.track('captures100', 40);
+  assert.equal(tasks.have('capture5'), 4);
+
+  clock += 86400000;
+  assert.equal(tasks.have('capture5'), 0, 'daily reset');
+  assert.equal(tasks.have('captures100'), 40, 'growth kept');
+});
+
+test('tasks: sync() mirrors level, collection and lifetime records', async () => {
+  const { createTasks } = await import('../src/meta/tasks.js');
+  const { createCatalog } = await import('../src/meta/catalog.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const account = createAccount({ save, bus, rng: seeded(21) });
+  const catalog = createCatalog({ save, bus, wallet });
+  const tasks = createTasks({ save, bus, wallet, account, catalog });
+
+  account.addXp(9000);
+  tasks.sync({ wins: 37, captures: 210, spins: 12 });
+  assert.equal(tasks.have('level15'), Math.min(15, account.level));
+  assert.equal(tasks.have('win120'), 37);
+  assert.equal(tasks.have('captures100'), 100, 'capped at the target');
+  assert.equal(tasks.have('spin50'), 12);
+  assert.ok(tasks.have('skins10') > 0);
+
+  // sync() twice must be a no-op (this is what caused a badge feedback loop)
+  let emits = 0;
+  bus.on('tasks:progress', () => emits++);
+  tasks.sync({ wins: 37, captures: 210, spins: 12 });
+  assert.equal(emits, 0);
+});
+
+test('tasks: claimable() counts what is waiting', async () => {
+  const { createTasks } = await import('../src/meta/tasks.js');
+  const save = freshSave();
+  const tasks = createTasks({ save, wallet: createWallet({ save }) });
+  assert.equal(tasks.claimable(), 0);
+  tasks.track('win1', 1);
+  assert.equal(tasks.claimable(), 1);
+  tasks.claim('win1');
+  assert.equal(tasks.claimable(), 0);
+});

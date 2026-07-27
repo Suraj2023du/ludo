@@ -310,6 +310,39 @@ test('ui: the spin wheel spins, pays out and then shows the cooldown', async () 
   assert.deepEqual(dom.console.errors, []);
 });
 
+test('ui: the task modal shows daily, growth and lucky month', async () => {
+  api.taskScreen.open('daily');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="tasks"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelectorAll('[data-tab]').length, 3);
+  assert.ok(el.querySelectorAll('[data-task]').length >= 7, 'daily rows');
+  assert.ok(el.querySelectorAll('[data-milestone]').length === 5, 'milestone pins');
+
+  el.querySelector('[data-tab="growth"]').click();
+  await tick(10);
+  assert.ok(el.querySelectorAll('[data-task]').length >= 7, 'growth rows');
+
+  el.querySelector('[data-tab="lucky"]').click();
+  await tick(10);
+  assert.ok(el.querySelectorAll('.lucky-day').length >= 28, 'stamp calendar');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: completing a task lets you claim it from the modal', async () => {
+  api.tasks.track('win1', 5);
+  api.taskScreen.open('daily');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="tasks"]');
+  const row = el.querySelector('[data-task="win1"]');
+  const before = api.wallet.coins;
+  row.querySelector('.task-go').click();
+  await tick(20);
+  assert.ok(api.wallet.coins > before, 'the reward was paid');
+  assert.equal(api.tasks.claimed('win1'), true);
+  api.taskScreen.close();
+});
+
 test('ui: teardown — the DOM shim is removed from the process', () => {
   dom.restore();
   assert.equal(typeof globalThis.document, 'undefined');
