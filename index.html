@@ -12,6 +12,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ludo Battle" />
   <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- share preview (WhatsApp / Telegram / X) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ludo Battle" />
+  <meta property="og:title" content="Ludo Battle - free offline Ludo" />
+  <meta property="og:description"
+    content="Play Ludo against smart bots or pass and play with friends. Skins, tasks, daily rewards. No ads, no login, works offline." />
+  <meta property="og:image" content="./assets/icons/icon-512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Ludo Battle - free offline Ludo" />
+  <meta name="twitter:description" content="Smart bots, pass and play, skins and daily rewards. Works offline." />
+  <meta name="twitter:image" content="./assets/icons/icon-512.png" />
+
   <title>Ludo Battle</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./assets/icons/icon-192.png" sizes="192x192" />
@@ -303,6 +316,11 @@
       <button class="btn btn--primary btn--wide" type="button" data-resume="yes" data-autofocus>Resume</button>
       <button class="btn btn--ghost btn--wide" type="button" data-resume="no">Start fresh</button>
     </div>
+  </div>
+
+  <div class="update-bar" data-update="bar" role="status" hidden>
+    <span data-update="text">New version ready</span>
+    <button class="update-btn" type="button" data-update="reload">Reload</button>
   </div>
 
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>

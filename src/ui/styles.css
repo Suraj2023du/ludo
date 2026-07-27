@@ -2019,3 +2019,61 @@ input:focus-visible {
   border-color: transparent;
   color: #2b1a00;
 }
+
+/* ─────────────────────── update bar + SOON ribbons ──────────────────── */
+
+.update-bar {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + var(--safe-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1f9d55, #0d6b38);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  animation: fade-in 0.25s ease both;
+}
+
+.update-bar[hidden] {
+  display: none;
+}
+
+.update-btn {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: #0d6b38;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tile-soon {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffd24a;
+  border: 1px solid rgba(255, 210, 74, 0.55);
+}
+
+.rail-btn.is-soon .rail-ico,
+.tile.is-soon .tile-art {
+  opacity: 0.72;
+}

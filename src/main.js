@@ -550,10 +550,45 @@ export function boot() {
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {
-        /* offline support is a bonus, never a blocker */
+
+    const bar = document.querySelector('[data-update="bar"]');
+    const reload = bar && bar.querySelector('[data-update="reload"]');
+    let waiting = null;
+
+    function offerUpdate(worker) {
+      waiting = worker;
+      if (!bar) return;
+      bar.querySelector('[data-update="text"]').textContent = i18n.t('sw.update');
+      if (reload) reload.textContent = i18n.t('sw.reload');
+      bar.hidden = false;
+    }
+
+    if (reload) {
+      reload.addEventListener('click', () => {
+        audio.sfx.tap();
+        save.flush();
+        if (waiting) waiting.postMessage('skipWaiting');
+        location.reload();
       });
+    }
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('./sw.js')
+        .then((reg) => {
+          // A newer build is already waiting (user opened a fresh tab).
+          if (reg.waiting && navigator.serviceWorker.controller) offerUpdate(reg.waiting);
+          reg.addEventListener('updatefound', () => {
+            const next = reg.installing;
+            if (!next) return;
+            next.addEventListener('statechange', () => {
+              if (next.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(next);
+            });
+          });
+        })
+        .catch(() => {
+          /* offline support is a bonus, never a blocker */
+        });
     });
   }
 
