@@ -30,6 +30,8 @@ import { createSkinShop } from './ui/skins.js';
 import { createAdPresenter, createShopScreen } from './ui/shop.js';
 import { createSpinScreen } from './ui/spin.js';
 import { createRewards } from './meta/rewards.js';
+import { createTasks } from './meta/tasks.js';
+import { createTaskScreen } from './ui/tasks.js';
 import {
   createOverlay,
   createPassScreen,
@@ -58,6 +60,9 @@ export function boot() {
   const ads = createAdService({ provider: adProvider, save, bus, wallet, account });
   const shop = createPurchaseService({ provider: new DisabledPurchaseProvider(), bus, wallet, account });
   const rewards = createRewards({ save, bus, wallet, account });
+  /** Which seat is "me" in the live game — used to credit tasks correctly. */
+  const isMe = (playerId) => !!session && playerId === session.humanId;
+  const tasks = createTasks({ save, bus, wallet, account, catalog, isMe });
   const i18n = createI18n({ lang: prefs.get('lang') || 'en', onChange: (l) => prefs.set('lang', l) });
 
   const router = createRouter({ root: app, audio });
@@ -163,6 +168,28 @@ export function boot() {
     onThemeEquip: (id) => applyTheme(id),
   });
 
+  const taskScreen = createTaskScreen({
+    el: document.querySelector('[data-overlay="tasks"]'),
+    bus,
+    i18n,
+    tasks,
+    rewards,
+    wallet,
+    audio,
+    onGo: (id) => {
+      // "Go" jumps straight to whatever the task needs.
+      if (id === 'spin3' || id === 'spin50') spinScreen.open();
+      else if (id === 'skins10') skinShop.open('dice');
+      else if (id === 'quick3') {
+        setupScreen.open(MODE.QUICK_MATCH);
+        router.show('setup');
+      } else {
+        setupScreen.open(MODE.VS_COMPUTER);
+        router.show('setup');
+      }
+    },
+  });
+
   const spinScreen = createSpinScreen({
     el: document.querySelector('[data-overlay="spin"]'),
     bus,
@@ -205,10 +232,11 @@ export function boot() {
         comingSoon(id);
       },
       onRail: (id) => {
-        if (id === 'shop') shopScreen.open('packs');
+        if (id === 'tasks') taskScreen.open('daily');
+        else if (id === 'vip') taskScreen.open('lucky');
+        else if (id === 'shop') shopScreen.open('packs');
         else if (id === 'removeAds') shopScreen.open('packs');
         else if (id === 'spinEvent') spinScreen.open();
-        else if (id === 'vip') shopScreen.open('packs');
         else comingSoon(id);
       },
       onNav: (id) => {
@@ -225,17 +253,36 @@ export function boot() {
   });
 
   /** Badges on the rail and the bottom nav (claimable rewards, free ads left). */
+  let badgesBusy = false;
   function refreshBadges() {
+    if (badgesBusy) return; // sync() emits events that land back here
+    badgesBusy = true;
     const s = rewards.summary();
+    tasks.sync({
+      wins: stats.all().total.wins,
+      captures: stats.all().total.captures,
+    });
     home.setBadge('nav', 'spin', s.canSpin ? '!' : 0);
     home.setBadge('nav', 'getCoins', ads.remaining('getCoins') || 0);
-    home.setBadge('rail', 'spinEvent', s.canClaimDaily ? '1' : 0);
+    home.setBadge('rail', 'tasks', tasks.claimable() || 0);
+    home.setBadge('rail', 'vip', s.canClaimDaily ? '1' : 0);
+    home.setBadge('rail', 'spinEvent', s.canSpin ? '1' : 0);
+    badgesBusy = false;
   }
 
-  bus.on('rewards:spin', refreshBadges);
-  bus.on('rewards:spins', refreshBadges);
-  bus.on('rewards:daily', refreshBadges);
-  bus.on('ads:reward', refreshBadges);
+  for (const evt of [
+    'rewards:spin',
+    'rewards:spins',
+    'rewards:daily',
+    'ads:reward',
+    'tasks:progress',
+    'tasks:claimed',
+    'tasks:milestone',
+    'account:levelUp',
+    'catalog:unlocked',
+  ]) {
+    bus.on(evt, refreshBadges);
+  }
 
   // Any remaining legacy [data-go] buttons (how-to shortcuts) still work.
   for (const btn of app.querySelectorAll('[data-go]')) {
@@ -414,6 +461,10 @@ export function boot() {
       losses: me ? me.losses : 0,
     });
     resume.clear();
+    if (session.mode === MODE.QUICK_MATCH) tasks.track('quick3', 1);
+    account.addXp(me && me.rank === 1 ? 60 : 25, 'game');
+    rewards.stampLucky();
+    refreshBadges();
 
     const summary = renderResult({ el: resultEl, state, prefs, humanId });
     const theme = getTheme(prefs.get('theme'));
@@ -549,6 +600,8 @@ export function boot() {
     shopScreen,
     skinShop,
     spinScreen,
+    taskScreen,
+    tasks,
     rewards,
     i18n,
     startGame,
