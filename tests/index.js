@@ -15,3 +15,4 @@ import './rules.test.js';
 import './ai.test.js';
 import './controller.test.js';
 import './sim.test.js';
+import './ui.test.js';
