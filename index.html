@@ -43,7 +43,7 @@
         <span class="logo-cell logo-cell--yellow"></span>
       </div>
       <h1 class="title">Ludo <em>Battle</em></h1>
-      <p class="muted">Loading the board…</p>
+      <p class="muted" data-i18n="app.loading">Loading the board…</p>
     </section>
 
     <!-- ──────────────────────────── LOBBY ─────────────────────────── -->
@@ -103,56 +103,57 @@
     <!-- ──────────────────────────── SETUP ─────────────────────────── -->
     <section class="screen screen--sheet" data-screen="setup" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-setup="back" aria-label="Back to menu">←</button>
+        <button class="icon-btn" type="button" data-setup="back" aria-label="Back" data-i18n-aria="common.back">←</button>
         <h2 data-setup="title">Vs Computer</h2>
       </header>
 
       <p class="muted" data-setup="hint"></p>
 
       <div class="field">
-        <span class="field-label">Players</span>
+        <span class="field-label" data-i18n="setup.playersLabel">Players</span>
         <div class="chip-row" data-setup="count"></div>
       </div>
 
       <div class="field">
-        <span class="field-label">Your colour</span>
+        <span class="field-label" data-i18n="setup.colour">Your colour</span>
         <div class="swatch-row" data-setup="colors"></div>
       </div>
 
       <div class="field field--grow">
-        <span class="field-label">Names</span>
+        <span class="field-label" data-i18n="setup.names">Names</span>
         <div class="name-list" data-setup="names"></div>
       </div>
 
-      <button class="btn btn--primary btn--wide" type="button" data-setup="start">Start game</button>
+      <button class="btn btn--primary btn--wide" type="button" data-setup="start" data-i18n="setup.start">Start
+        game</button>
     </section>
 
     <!-- ─────────────────────────── HOW TO PLAY ────────────────────── -->
     <section class="screen screen--sheet" data-screen="howto" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-howto="back" aria-label="Back to menu">←</button>
-        <h2>How to Play</h2>
+        <button class="icon-btn" type="button" data-howto="back" aria-label="Back" data-i18n-aria="common.back">←</button>
+        <h2 data-i18n="howto.title">How to Play</h2>
       </header>
       <div class="scroll">
         <ol class="rules">
-          <li>Each player has <strong>4 tokens</strong> parked in their base.</li>
-          <li>Tap the dice on your turn. A token can only <strong>leave the base on a 6</strong>, landing on your
+          <li data-i18n="howto.r1">Each player has 4 tokens parked in their base.</li>
+          <li data-i18n="howto.r2">Tap the dice on your turn. A token can only leave the base on a 6, landing on your
             coloured start square.</li>
-          <li>Roll a <strong>6 and you roll again</strong>. But <strong>three 6s in a row</strong> and you lose the
-            whole turn.</li>
-          <li>Move clockwise around the 52-square track. Tap a glowing token to move it.</li>
-          <li>Land exactly on an opponent on a normal square and it is <strong>captured</strong> - back to base it goes,
-            and you get another turn.</li>
-          <li>The <strong>8 safe squares</strong> (4 coloured start squares + 4 stars) are protected. Nobody can be
+          <li data-i18n="howto.r3">Roll a 6 and you roll again. But three 6s in a row and you lose the whole turn.</li>
+          <li data-i18n="howto.r4">Move clockwise around the 52-square track. Tap a glowing token to move it.</li>
+          <li data-i18n="howto.r5">Land exactly on an opponent on a normal square and it is captured - back to base it
+            goes, and you get another turn.</li>
+          <li data-i18n="howto.r6">The 8 safe squares (4 coloured start squares + 4 stars) are protected. Nobody can be
             captured there.</li>
-          <li>Two or more of <strong>your own</strong> tokens may share a square. They are drawn side by side.</li>
-          <li>After a full lap you turn into your <strong>private home column</strong>. Opponents can never enter it.
+          <li data-i18n="howto.r7">Two or more of your own tokens may share a square. They are drawn side by side.</li>
+          <li data-i18n="howto.r8">After a full lap you turn into your private home column. Opponents can never enter
+            it.</li>
+          <li data-i18n="howto.r9">You need the exact roll to reach the centre. Overshoot and that token cannot move.
           </li>
-          <li>You need the <strong>exact roll</strong> to reach the centre. Overshoot and that token cannot move.</li>
-          <li>Bringing a token home does <strong>not</strong> give you an extra turn.</li>
-          <li>First player to bring <strong>all 4 tokens home wins</strong>. Play continues so everyone else gets a
+          <li data-i18n="howto.r10">Bringing a token home does not give you an extra turn.</li>
+          <li data-i18n="howto.r11">First player to bring all 4 tokens home wins. Play continues so everyone else gets a
             rank.</li>
-          <li>No legal move? Your turn passes automatically.</li>
+          <li data-i18n="howto.r12">No legal move? Your turn passes automatically.</li>
         </ol>
       </div>
     </section>
@@ -160,46 +161,52 @@
     <!-- ─────────────────────────── SETTINGS ───────────────────────── -->
     <section class="screen screen--sheet" data-screen="settings" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-settings="back" aria-label="Back to menu">←</button>
-        <h2>Settings</h2>
+        <button class="icon-btn" type="button" data-settings="back" aria-label="Back" data-i18n-aria="common.back">←</button>
+        <h2 data-i18n="set.title">Settings</h2>
       </header>
 
       <div class="scroll">
+        <div class="field">
+          <span class="field-label" data-i18n="set.language">Language</span>
+          <div class="chip-row" data-set="lang"></div>
+        </div>
+
         <div class="field field--row">
-          <span class="field-label">Sound</span>
+          <span class="field-label" data-i18n="set.sound">Sound</span>
           <button class="toggle" type="button" data-set="sound" aria-pressed="true">
             <span data-state>ON</span>
           </button>
         </div>
 
         <div class="field field--row">
-          <span class="field-label">Vibration</span>
+          <span class="field-label" data-i18n="set.vibration">Vibration</span>
           <button class="toggle" type="button" data-set="vibration" aria-pressed="true">
             <span data-state>ON</span>
           </button>
         </div>
 
         <div class="field">
-          <span class="field-label">Board theme</span>
+          <span class="field-label" data-i18n="set.theme">Board theme</span>
           <div class="chip-row" data-set="theme"></div>
         </div>
 
         <div class="field">
-          <span class="field-label">Animation speed</span>
+          <span class="field-label" data-i18n="set.speed">Animation speed</span>
           <div class="chip-row" data-set="speed"></div>
         </div>
 
         <div class="field">
-          <span class="field-label">Bot difficulty</span>
+          <span class="field-label" data-i18n="set.bot">Bot difficulty</span>
           <div class="chip-row" data-set="bot"></div>
         </div>
 
         <div class="field">
-          <span class="field-label">Your record</span>
+          <span class="field-label" data-i18n="set.record">Your record</span>
           <div class="stats" data-set="stats"></div>
         </div>
 
-        <button class="btn btn--ghost btn--wide" type="button" data-set="reset">Reset stats</button>
+        <button class="btn btn--ghost btn--wide" type="button" data-set="reset" data-i18n="set.reset">Reset
+          stats</button>
       </div>
     </section>
 
@@ -224,19 +231,22 @@
   <!-- ─────────────────────────── OVERLAYS ─────────────────────────── -->
   <div class="overlay" data-overlay="pause" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Paused">
     <div class="card">
-      <h2>Paused</h2>
-      <button class="btn btn--primary btn--wide" type="button" data-pause="resume" data-autofocus>Resume</button>
-      <button class="btn btn--wide" type="button" data-pause="settings">Settings</button>
-      <button class="btn btn--ghost btn--wide" type="button" data-pause="exit">Exit to menu</button>
+      <h2 data-i18n="game.paused">Paused</h2>
+      <button class="btn btn--primary btn--wide" type="button" data-pause="resume" data-autofocus
+        data-i18n="game.resume">Resume</button>
+      <button class="btn btn--wide" type="button" data-pause="settings" data-i18n="set.title">Settings</button>
+      <button class="btn btn--ghost btn--wide" type="button" data-pause="exit" data-i18n="game.exit">Exit to
+        menu</button>
     </div>
   </div>
 
   <div class="overlay overlay--pass" data-overlay="pass" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="card card--pass">
       <span class="pass-dot" data-pass="dot" aria-hidden="true"></span>
-      <p class="muted">Pass the phone to</p>
+      <p class="muted" data-i18n="game.passTo">Pass the phone to</p>
       <h2 data-pass="name">Player</h2>
-      <button class="btn btn--primary btn--wide" type="button" data-pass="ok" data-autofocus>I'm ready</button>
+      <button class="btn btn--primary btn--wide" type="button" data-pass="ok" data-autofocus data-i18n="game.ready">I'm
+        ready</button>
     </div>
   </div>
 
@@ -245,8 +255,10 @@
       <h2 data-result="headline">You win!</h2>
       <p class="muted" data-result="sub"></p>
       <div class="rank-list" data-result="list"></div>
-      <button class="btn btn--primary btn--wide" type="button" data-result="again" data-autofocus>Play again</button>
-      <button class="btn btn--ghost btn--wide" type="button" data-result="menu">Main menu</button>
+      <button class="btn btn--primary btn--wide" type="button" data-result="again" data-autofocus
+        data-i18n="result.again">Play again</button>
+      <button class="btn btn--ghost btn--wide" type="button" data-result="menu" data-i18n="result.menu">Main
+        menu</button>
     </div>
   </div>
 
@@ -255,7 +267,7 @@
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Task</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body" data-modal="body"></div>
@@ -267,7 +279,7 @@
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Skin</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body grid-3" data-modal="body"></div>
@@ -279,7 +291,7 @@
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Shop</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body" data-modal="body"></div>
@@ -290,7 +302,7 @@
     <div class="card card--spin">
       <header class="modal-head">
         <h2 data-spin="title">Lucky Spin</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
       </header>
       <canvas class="wheel" data-spin="wheel" width="300" height="300" aria-hidden="true"></canvas>
       <p class="muted" data-spin="status"></p>
@@ -303,18 +315,20 @@
     aria-label="Advert">
     <div class="ad-frame">
       <div class="ad-fake" data-ad="art" aria-hidden="true"></div>
-      <p class="ad-note" data-ad="note">Ad playing…</p>
+      <p class="ad-note" data-ad="note" data-i18n="ads.watching">Ad playing…</p>
       <div class="ad-bar"><i data-ad="bar"></i></div>
-      <button class="btn btn--ghost" type="button" data-ad="skip">Cancel</button>
+      <button class="btn btn--ghost" type="button" data-ad="skip" data-i18n="common.cancel">Cancel</button>
     </div>
   </div>
 
   <div class="overlay" data-overlay="resume" aria-hidden="true" role="dialog" aria-modal="true">
     <div class="card">
-      <h2>Resume last game?</h2>
+      <h2 data-i18n="resume.title">Resume last game?</h2>
       <p class="muted" data-resume="text"></p>
-      <button class="btn btn--primary btn--wide" type="button" data-resume="yes" data-autofocus>Resume</button>
-      <button class="btn btn--ghost btn--wide" type="button" data-resume="no">Start fresh</button>
+      <button class="btn btn--primary btn--wide" type="button" data-resume="yes" data-autofocus
+        data-i18n="resume.yes">Resume</button>
+      <button class="btn btn--ghost btn--wide" type="button" data-resume="no" data-i18n="resume.no">Start
+        fresh</button>
     </div>
   </div>
 
