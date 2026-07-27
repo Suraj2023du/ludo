@@ -30,7 +30,7 @@ import { createEffects } from '../render/effects.js';
 
 const MAX_DPR = 2;
 
-export function createGameView({ canvas, bus, audio, prefs }) {
+export function createGameView({ canvas, bus, audio, prefs, catalog = null }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const boardCache = createBoardCache();
   const tokens = createTokenLayer();
@@ -73,6 +73,16 @@ export function createGameView({ canvas, bus, audio, prefs }) {
   function setTheme(id) {
     theme = getTheme(id);
     boardCache.invalidate();
+    dirty = true;
+  }
+
+  /** Push the equipped dice/token skins into the render layers. */
+  function applySkins() {
+    if (!catalog) return;
+    const dieItem = catalog.equippedItem('dice');
+    const tokenItem = catalog.equippedItem('token');
+    if (dieItem) dice.setArt(dieItem.art);
+    if (tokenItem) tokens.setArt(tokenItem.art);
     dirty = true;
   }
 
@@ -374,6 +384,8 @@ export function createGameView({ canvas, bus, audio, prefs }) {
   });
 
   bus.on(EVENTS.MOVE_REJECTED, () => audio.sfx.deny());
+  bus.on('catalog:equipped', applySkins);
+  applySkins();
 
   /* ───────────────────────────── public API ──────────────────────────── */
 
@@ -383,6 +395,7 @@ export function createGameView({ canvas, bus, audio, prefs }) {
     stop,
     resize,
     setTheme,
+    applySkins,
     attach(next) {
       controller = next;
       if (controller) controller.setAnimator(animator);

@@ -17,6 +17,7 @@ export const DEFAULT_PREFS = Object.freeze({
   playerColor: 'red',
   lastMode: 'vsComputer',
   seenHowTo: false,
+  lang: 'en', // en | hi
 });
 
 /** Tiny safe wrapper around localStorage. */

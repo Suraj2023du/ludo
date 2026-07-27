@@ -28,8 +28,8 @@ export function emptySave() {
 
 const SECTIONS = Object.keys(emptySave()).filter((k) => k !== 'v' && k !== 'updatedAt');
 
-export function createSave({ debounceMs = 220, now = () => Date.now() } = {}) {
-  const store = createStore(SAVE_KEY);
+export function createSave({ debounceMs = 220, now = () => Date.now(), key = SAVE_KEY } = {}) {
+  const store = createStore(key);
   let doc = migrate(store.read());
   let timer = null;
   const listeners = new Set();

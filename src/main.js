@@ -16,6 +16,13 @@ import { createAudio } from './audio/synth.js';
 import { createPrefs } from './storage/prefs.js';
 import { createStats } from './storage/stats.js';
 import { createResume } from './storage/resume.js';
+import { createSave } from './storage/save.js';
+import { createAccount } from './meta/account.js';
+import { createWallet } from './meta/wallet.js';
+import { createCatalog } from './meta/catalog.js';
+import { LocalAdProvider, createAdService } from './services/ads.js';
+import { DisabledPurchaseProvider, createPurchaseService } from './services/purchase.js';
+import { createI18n } from './i18n/index.js';
 import { createGameView } from './ui/game.js';
 import { createHud } from './ui/hud.js';
 import {
@@ -37,11 +44,21 @@ export function boot() {
   const audio = createAudio({ enabled: prefs.get('sound'), vibration: prefs.get('vibration') });
   const bus = createEventBus();
 
+  // ── meta game (Phase 1.5): one save document, wallet, collection, services ──
+  const save = createSave();
+  const account = createAccount({ save, bus, name: prefs.get('playerName') });
+  const wallet = createWallet({ save, bus });
+  const catalog = createCatalog({ save, bus, wallet });
+  const adProvider = new LocalAdProvider();
+  const ads = createAdService({ provider: adProvider, save, bus, wallet, account });
+  const shop = createPurchaseService({ provider: new DisabledPurchaseProvider(), bus, wallet, account });
+  const i18n = createI18n({ lang: prefs.get('lang') || 'en', onChange: (l) => prefs.set('lang', l) });
+
   const router = createRouter({ root: app, audio });
   const toaster = createToaster({ host: document.getElementById('toasts'), bus });
   const gameScreen = router.el('game');
   const canvas = gameScreen.querySelector('[data-game="canvas"]');
-  const view = createGameView({ canvas, bus, audio, prefs });
+  const view = createGameView({ canvas, bus, audio, prefs, catalog });
   const hud = createHud({ root: gameScreen, bus, prefs });
 
   const overlays = {
@@ -88,6 +105,12 @@ export function boot() {
     el: router.el('settings'),
     prefs,
     audio,
+    // only board themes the player actually owns are offered here
+    themeIds: () =>
+      catalog
+        .ownedOf('theme')
+        .map((id) => (catalog.item(id) || {}).theme)
+        .filter(Boolean),
     onThemeChange: (id) => applyTheme(id),
     onSpeedChange: (speed) => {
       if (session) session.controller.setSpeed(speed);
@@ -314,8 +337,11 @@ export function boot() {
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
 
+  window.addEventListener('pagehide', () => save.flush());
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      save.flush();
       if (session && !session.controller.paused && router.current === 'game') {
         session.controller.pause();
         overlays.pause.open();
@@ -408,6 +434,14 @@ export function boot() {
     audio,
     router,
     view,
+    save,
+    account,
+    wallet,
+    catalog,
+    ads,
+    adProvider,
+    shop,
+    i18n,
     startGame,
     exitToMenu,
     get session() {

@@ -300,7 +300,7 @@ export function createSetupScreen({ el, prefs, audio, onStart, onBack }) {
 
 /* ───────────────────────────── settings screen ──────────────────────────── */
 
-export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset }) {
+export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset, themeIds }) {
   const soundBtn = el.querySelector('[data-set="sound"]');
   const vibeBtn = el.querySelector('[data-set="vibration"]');
   const themeRow = el.querySelector('[data-set="theme"]');
@@ -380,7 +380,8 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
     render(stats) {
       toggleLabel(soundBtn, prefs.get('sound'));
       toggleLabel(vibeBtn, prefs.get('vibration'));
-      buildOptions(themeRow, THEME_IDS, 'theme', onThemeChange, (id) => getTheme(id).label);
+      const themes = typeof themeIds === 'function' ? themeIds() : THEME_IDS;
+      buildOptions(themeRow, themes.length ? themes : THEME_IDS, 'theme', onThemeChange, (id) => getTheme(id).label);
       buildOptions(speedRow, ['slow', 'normal', 'fast'], 'speed', onSpeedChange, cap);
       buildOptions(botRow, ['easy', 'normal', 'hard'], 'botLevel', null, cap);
       if (stats) renderStats(stats);
