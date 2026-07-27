@@ -226,8 +226,19 @@ export function createGameView({ canvas, bus, audio, prefs }) {
 
   /* ───────────────────────────── the animator ────────────────────────── */
 
+  /**
+   * Read a duration from the controller's timing table.
+   * Uses an explicit finite check so an injected 0 (tests, "instant" mode) is
+   * honoured instead of falling back to the default.
+   */
+  function ms(key, fallback) {
+    const table = controller && controller.timing;
+    const value = table ? table[key] : undefined;
+    return Number.isFinite(value) ? value : fallback;
+  }
+
   function stepMs() {
-    return (controller && controller.timing.step) || 110;
+    return ms('step', 110);
   }
 
   function scheduleStepSounds(count) {
@@ -248,17 +259,17 @@ export function createGameView({ canvas, bus, audio, prefs }) {
 
   const animator = {
     async roll(value, player) {
-      const ms = (controller && controller.timing.diceRoll) || 560;
-      audio.sfx.dice(ms);
+      const duration = ms('diceRoll', 560);
+      audio.sfx.dice(duration);
       fx.ring(
         layout.dice.x + layout.dice.size / 2,
         layout.dice.y + layout.dice.size / 2,
         playerPalette(theme, player.color).main,
         layout.dice.size * 0.9,
-        ms * 0.6
+        duration * 0.6
       );
       dirty = true;
-      await dice.roll(value, ms);
+      await dice.roll(value, duration);
     },
 
     async move(ev) {
@@ -285,7 +296,7 @@ export function createGameView({ canvas, bus, audio, prefs }) {
       flash = 420;
       flashColor = playerPalette(theme, ev.byColor).main;
       dirty = true;
-      await tokens.fly(tokenKey(ev.playerId, ev.tokenIndex), from, to, (controller && controller.timing.capture) || 380);
+      await tokens.fly(tokenKey(ev.playerId, ev.tokenIndex), from, to, ms('capture', 380));
     },
 
     async finish(ev) {
@@ -296,7 +307,7 @@ export function createGameView({ canvas, bus, audio, prefs }) {
       fx.ring(at.x, at.y, pal.main, layout.cell * 2.2, 520);
       audio.sfx.finish();
       dirty = true;
-      await tokens.pop(tokenKey(ev.playerId, ev.tokenIndex), at, (controller && controller.timing.finish) || 260);
+      await tokens.pop(tokenKey(ev.playerId, ev.tokenIndex), at, ms('finish', 260));
     },
   };
 

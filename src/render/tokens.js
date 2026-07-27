@@ -47,19 +47,19 @@ export function createTokenLayer() {
     return start(key, {
       kind: 'walk',
       points,
-      duration: Math.max(60, hops * stepMs),
+      duration: Math.max(40, hops * stepMs),
       hops,
     });
   }
 
   /** Captured token flying back to its base slot. */
   function fly(key, from, to, duration) {
-    return start(key, { kind: 'fly', from, to, duration: Math.max(120, duration) });
+    return start(key, { kind: 'fly', from, to, duration: Math.max(40, duration) });
   }
 
   /** Little celebration when a token reaches the centre. */
   function pop(key, at, duration) {
-    return start(key, { kind: 'pop', at, duration: Math.max(120, duration) });
+    return start(key, { kind: 'pop', at, duration: Math.max(40, duration) });
   }
 
   function update(dt) {

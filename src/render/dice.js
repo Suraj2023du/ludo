@@ -38,7 +38,8 @@ export function createDiceLayer() {
     value = finalValue;
     rolling = true;
     elapsed = 0;
-    duration = Math.max(180, ms);
+    // 40ms is only a sanity floor; real timings come from controller.timing
+    duration = Math.max(40, ms);
     landAt = duration * 0.78; // last 22% is the settle bounce
     faceTimer = 0;
     return new Promise((r) => {
