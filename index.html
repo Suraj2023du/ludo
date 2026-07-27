@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#12213a" />
+    <meta name="description" content="Ludo Battle - play Ludo offline against smart bots or pass and play with friends. No ads, no downloads, works offline." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ludo Battle" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>Ludo Battle</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icons/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="./src/ui/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <!-- ─────────────────────────── SPLASH ─────────────────────────── -->
+      <section class="screen screen--center is-active" data-screen="splash" aria-hidden="false">
+        <div class="logo" aria-hidden="true">
+          <span class="logo-cell logo-cell--red"></span>
+          <span class="logo-cell logo-cell--green"></span>
+          <span class="logo-cell logo-cell--blue"></span>
+          <span class="logo-cell logo-cell--yellow"></span>
+        </div>
+        <h1 class="title">Ludo <em>Battle</em></h1>
+        <p class="muted">Loading the board…</p>
+      </section>
+
+      <!-- ──────────────────────────── MENU ──────────────────────────── -->
+      <section class="screen screen--menu" data-screen="menu" aria-hidden="true">
+        <header class="brand">
+          <div class="logo logo--sm" aria-hidden="true">
+            <span class="logo-cell logo-cell--red"></span>
+            <span class="logo-cell logo-cell--green"></span>
+            <span class="logo-cell logo-cell--blue"></span>
+            <span class="logo-cell logo-cell--yellow"></span>
+          </div>
+          <h1 class="title">Ludo <em>Battle</em></h1>
+          <p class="muted" data-menu="tagline">Offline Ludo. Smart bots. Zero ads.</p>
+        </header>
+
+        <nav class="menu" aria-label="Main menu">
+          <button class="btn btn--primary" type="button" data-go="vsComputer" data-autofocus>
+            <span class="btn-title">Vs Computer</span>
+            <span class="btn-sub">Beat 1-3 smart bots</span>
+          </button>
+          <button class="btn" type="button" data-go="passPlay">
+            <span class="btn-title">Pass &amp; Play</span>
+            <span class="btn-sub">2-4 players, one phone</span>
+          </button>
+          <button class="btn" type="button" data-go="quickMatch">
+            <span class="btn-title">Quick Match</span>
+            <span class="btn-sub">Fast 1 v 1 against a bot</span>
+          </button>
+          <div class="menu-row">
+            <button class="btn btn--ghost" type="button" data-go="settings">Settings</button>
+            <button class="btn btn--ghost" type="button" data-go="howto">How to Play</button>
+          </div>
+        </nav>
+
+        <p class="footnote">
+          <span data-menu="stats">No games played yet</span>
+          <span class="dot">·</span>
+          <span data-menu="offline">Works offline</span>
+        </p>
+      </section>
+
+      <!-- ──────────────────────────── SETUP ─────────────────────────── -->
+      <section class="screen screen--sheet" data-screen="setup" aria-hidden="true">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-setup="back" aria-label="Back to menu">←</button>
+          <h2 data-setup="title">Vs Computer</h2>
+        </header>
+
+        <p class="muted" data-setup="hint"></p>
+
+        <div class="field">
+          <span class="field-label">Players</span>
+          <div class="chip-row" data-setup="count"></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Your colour</span>
+          <div class="swatch-row" data-setup="colors"></div>
+        </div>
+
+        <div class="field field--grow">
+          <span class="field-label">Names</span>
+          <div class="name-list" data-setup="names"></div>
+        </div>
+
+        <button class="btn btn--primary btn--wide" type="button" data-setup="start">Start game</button>
+      </section>
+
+      <!-- ─────────────────────────── HOW TO PLAY ────────────────────── -->
+      <section class="screen screen--sheet" data-screen="howto" aria-hidden="true">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-howto="back" aria-label="Back to menu">←</button>
+          <h2>How to Play</h2>
+        </header>
+        <div class="scroll">
+          <ol class="rules">
+            <li>Each player has <strong>4 tokens</strong> parked in their base.</li>
+            <li>Tap the dice on your turn. A token can only <strong>leave the base on a 6</strong>, landing on your coloured start square.</li>
+            <li>Roll a <strong>6 and you roll again</strong>. But <strong>three 6s in a row</strong> and you lose the whole turn.</li>
+            <li>Move clockwise around the 52-square track. Tap a glowing token to move it.</li>
+            <li>Land exactly on an opponent on a normal square and it is <strong>captured</strong> - back to base it goes, and you get another turn.</li>
+            <li>The <strong>8 safe squares</strong> (4 coloured start squares + 4 stars) are protected. Nobody can be captured there.</li>
+            <li>Two or more of <strong>your own</strong> tokens may share a square. They are drawn side by side.</li>
+            <li>After a full lap you turn into your <strong>private home column</strong>. Opponents can never enter it.</li>
+            <li>You need the <strong>exact roll</strong> to reach the centre. Overshoot and that token cannot move.</li>
+            <li>Bringing a token home does <strong>not</strong> give you an extra turn.</li>
+            <li>First player to bring <strong>all 4 tokens home wins</strong>. Play continues so everyone else gets a rank.</li>
+            <li>No legal move? Your turn passes automatically.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────── SETTINGS ───────────────────────── -->
+      <section class="screen screen--sheet" data-screen="settings" aria-hidden="true">
+        <header class="sheet-head">
+          <button class="icon-btn" type="button" data-settings="back" aria-label="Back to menu">←</button>
+          <h2>Settings</h2>
+        </header>
+
+        <div class="scroll">
+          <div class="field field--row">
+            <span class="field-label">Sound</span>
+            <button class="toggle" type="button" data-set="sound" aria-pressed="true">
+              <span data-state>ON</span>
+            </button>
+          </div>
+
+          <div class="field field--row">
+            <span class="field-label">Vibration</span>
+            <button class="toggle" type="button" data-set="vibration" aria-pressed="true">
+              <span data-state>ON</span>
+            </button>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Board theme</span>
+            <div class="chip-row" data-set="theme"></div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Animation speed</span>
+            <div class="chip-row" data-set="speed"></div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Bot difficulty</span>
+            <div class="chip-row" data-set="bot"></div>
+          </div>
+
+          <div class="field">
+            <span class="field-label">Your record</span>
+            <div class="stats" data-set="stats"></div>
+          </div>
+
+          <button class="btn btn--ghost btn--wide" type="button" data-set="reset">Reset stats</button>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────── GAME ──────────────────────────── -->
+      <section class="screen screen--game" data-screen="game" aria-hidden="true">
+        <header class="hud">
+          <button class="icon-btn" type="button" data-game="pause" aria-label="Pause game">॥</button>
+          <div class="banner" data-hud="banner" role="status" aria-live="polite">Your turn</div>
+          <div class="dice-readout" aria-label="Last dice value">
+            <span data-hud="dice">–</span>
+          </div>
+        </header>
+
+        <div class="board-wrap">
+          <canvas id="board" data-game="canvas" role="img" aria-label="Ludo board"></canvas>
+        </div>
+
+        <div class="panels" data-hud="panels"></div>
+      </section>
+    </div>
+
+    <!-- ─────────────────────────── OVERLAYS ─────────────────────────── -->
+    <div class="overlay" data-overlay="pause" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Paused">
+      <div class="card">
+        <h2>Paused</h2>
+        <button class="btn btn--primary btn--wide" type="button" data-pause="resume" data-autofocus>Resume</button>
+        <button class="btn btn--wide" type="button" data-pause="settings">Settings</button>
+        <button class="btn btn--ghost btn--wide" type="button" data-pause="exit">Exit to menu</button>
+      </div>
+    </div>
+
+    <div class="overlay overlay--pass" data-overlay="pass" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="card card--pass">
+        <span class="pass-dot" data-pass="dot" aria-hidden="true"></span>
+        <p class="muted">Pass the phone to</p>
+        <h2 data-pass="name">Player</h2>
+        <button class="btn btn--primary btn--wide" type="button" data-pass="ok" data-autofocus>I'm ready</button>
+      </div>
+    </div>
+
+    <div class="overlay overlay--result" data-overlay="result" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="card">
+        <h2 data-result="headline">You win!</h2>
+        <p class="muted" data-result="sub"></p>
+        <div class="rank-list" data-result="list"></div>
+        <button class="btn btn--primary btn--wide" type="button" data-result="again" data-autofocus>Play again</button>
+        <button class="btn btn--ghost btn--wide" type="button" data-result="menu">Main menu</button>
+      </div>
+    </div>
+
+    <div class="overlay" data-overlay="resume" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="card">
+        <h2>Resume last game?</h2>
+        <p class="muted" data-resume="text"></p>
+        <button class="btn btn--primary btn--wide" type="button" data-resume="yes" data-autofocus>Resume</button>
+        <button class="btn btn--ghost btn--wide" type="button" data-resume="no">Start fresh</button>
+      </div>
+    </div>
+
+    <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+    <noscript>
+      <p style="color: #fff; padding: 24px; font: 16px system-ui">
+        Ludo Battle needs JavaScript. Please enable it and reload.
+      </p>
+    </noscript>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
