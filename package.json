@@ -13,7 +13,8 @@
     "icons": "node tools/make-icons.js",
     "boot": "node tools/boot-check.js",
     "playthrough": "node tools/playthrough.js",
-    "verify": "node --test tests/ && node tools/boot-check.js && node tools/playthrough.js && node tools/size.js"
+    "audit": "node tools/audit.js --strict",
+    "verify": "node tools/audit.js --strict && node --test tests/ && node tools/boot-check.js && node tools/playthrough.js && node tools/size.js"
   },
   "engines": {
     "node": ">=18"

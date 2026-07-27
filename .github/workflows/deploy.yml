@@ -28,6 +28,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Static audit (imports, i18n, CSS, events, layering)
+        run: node tools/audit.js --strict
+
       - name: Unit + simulation + UI tests
         run: node --test tests/
 
