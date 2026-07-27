@@ -104,20 +104,27 @@ function roundedCoverage(x, y, rx, ry, rw, rh, r) {
   return Math.min(1, Math.max(0, r + 0.5 - d));
 }
 
-function drawIcon(size) {
+/**
+ * @param {number} size
+ * @param {boolean} maskable full-bleed background + art inside the 80% safe
+ *        circle, so Android launchers can crop to any shape without clipping.
+ */
+function drawIcon(size, maskable = false) {
   const px = new Uint8Array(size * size * 4);
   const s = (v) => Math.round(v * size);
 
-  // page background (rounded so maskable icons look right on every launcher)
+  // page background
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const a = roundedCoverage(x + 0.5, y + 0.5, 0, 0, size, size, s(0.19));
+      const a = maskable ? 1 : roundedCoverage(x + 0.5, y + 0.5, 0, 0, size, size, s(0.19));
       if (a > 0) put(px, size, x, y, COLORS.bg, a);
     }
   }
 
   // board plate
-  const plate = { x: s(0.12), y: s(0.12), w: s(0.76), h: s(0.76), r: s(0.1) };
+  const inset = maskable ? 0.235 : 0.12;
+  const span = 1 - inset * 2;
+  const plate = { x: s(inset), y: s(inset), w: s(span), h: s(span), r: s(0.1 * span) };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const a = roundedCoverage(x + 0.5, y + 0.5, plate.x, plate.y, plate.w, plate.h, plate.r);
@@ -156,7 +163,7 @@ function drawIcon(size) {
 
   // centre die-ish badge
   const c = size / 2;
-  const rBadge = s(0.115);
+  const rBadge = s(0.115 * (maskable ? span / 0.76 : 1));
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const d = Math.hypot(x + 0.5 - c, y + 0.5 - c);
@@ -188,9 +195,14 @@ function drawIcon(size) {
 }
 
 mkdirSync(OUT, { recursive: true });
-for (const size of [192, 512]) {
-  const file = join(OUT, 'icon-' + size + '.png');
-  const buf = drawIcon(size);
+const targets = [
+  { name: 'icon-192.png', size: 192, maskable: false },
+  { name: 'icon-512.png', size: 512, maskable: false },
+  { name: 'icon-maskable-512.png', size: 512, maskable: true },
+];
+for (const target of targets) {
+  const file = join(OUT, target.name);
+  const buf = drawIcon(target.size, target.maskable);
   writeFileSync(file, buf);
   console.log('wrote', file, buf.length + ' bytes');
 }

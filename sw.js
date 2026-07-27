@@ -57,6 +57,7 @@ const PRECACHE = [
   './src/sync/local.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
+  './assets/icons/icon-maskable-512.png',
 ];
 
 self.addEventListener('install', (event) => {
