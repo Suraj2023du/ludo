@@ -26,6 +26,12 @@ const PRECACHE = [
   './src/engine/state.js',
   './src/engine/rules.js',
   './src/engine/ai.js',
+  './src/i18n/index.js',
+  './src/meta/account.js',
+  './src/meta/wallet.js',
+  './src/services/ads.js',
+  './src/services/purchase.js',
+  './src/storage/save.js',
   './src/game/events.js',
   './src/game/controller.js',
   './src/game/modes.js',
@@ -92,7 +98,7 @@ self.addEventListener('fetch', (event) => {
           // Refresh in the background so updates land on the next launch.
           fetch(req)
             .then((res) => res && res.ok && cache.put('./index.html', res.clone()))
-            .catch(() => {});
+            .catch(() => { });
           return cached;
         }
         try {
