@@ -45,14 +45,14 @@ function svg(name, size = 24) {
 
 /** Mode / feature tiles, in reference order. */
 const TILES = [
-  { id: 'bigWin', icon: 'trophy', titleKey: 'home.bigWin', subKey: 'home.bigWinSub', cls: 'gold', base: 41000 },
-  { id: 'goldRoom', icon: 'coin', titleKey: 'home.goldRoom', subKey: 'home.goldRoomSub', cls: 'amber', base: 18000, badgeKey: 'home.goldRoomSub' },
-  { id: 'tournament', icon: 'lucky', titleKey: 'home.tournament', cls: 'crimson', base: 95000 },
-  { id: 'friends', icon: 'friends', titleKey: 'home.friends', cls: 'cyan', base: 12000, badge: 'CHAT' },
   { id: 'vsComputer', icon: 'vs', titleKey: 'home.computer', cls: 'green', base: 34000 },
-  { id: 'passPlay', icon: 'phone', titleKey: 'home.passPlay', cls: 'yellow', base: 28000 },
-  { id: 'snakes', icon: 'snake', titleKey: 'home.snakes', cls: 'violet', base: 24000 },
   { id: 'quickMatch', icon: 'bolt', titleKey: 'home.quick', cls: 'teal', base: 30000 },
+  { id: 'passPlay', icon: 'phone', titleKey: 'home.passPlay', cls: 'yellow', base: 28000 },
+  { id: 'bigWin', icon: 'trophy', titleKey: 'home.bigWin', subKey: 'home.bigWinSub', cls: 'gold', base: 41000, soon: true },
+  { id: 'goldRoom', icon: 'coin', titleKey: 'home.goldRoom', cls: 'amber', base: 18000, soon: true },
+  { id: 'tournament', icon: 'lucky', titleKey: 'home.tournament', cls: 'crimson', base: 95000, soon: true },
+  { id: 'friends', icon: 'friends', titleKey: 'home.friends', cls: 'cyan', base: 12000, soon: true },
+  { id: 'snakes', icon: 'snake', titleKey: 'home.snakes', cls: 'violet', base: 24000, soon: true },
 ];
 
 /** Left rail entries. */
@@ -151,10 +151,11 @@ export function createHome(o) {
     for (const tile of TILES) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'tile tile--' + tile.cls;
+      b.className = 'tile tile--' + tile.cls + (tile.soon ? ' is-soon' : '');
       b.setAttribute('role', 'listitem');
       b.dataset.tile = tile.id;
       b.innerHTML =
+        (tile.soon ? '<span class="tile-soon">SOON</span>' : '') +
         (tile.badge || tile.badgeKey ? '<span class="tile-badge">' + (tile.badge || t(tile.badgeKey)) + '</span>' : '') +
         '<span class="tile-art">' + svg(tile.icon, 40) + '</span>' +
         '<span class="tile-title">' + t(tile.titleKey) + '</span>' +
