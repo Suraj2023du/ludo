@@ -5,19 +5,12 @@
  * result is never revealed before the animation lands.
  */
 
-import { playerPalette, roundRect, withAlpha } from './board.js';
-
-/** Pip layout per face, in unit coordinates (-1..1). */
-const PIPS = {
-  1: [[0, 0]],
-  2: [[-0.45, -0.45], [0.45, 0.45]],
-  3: [[-0.45, -0.45], [0, 0], [0.45, 0.45]],
-  4: [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]],
-  5: [[-0.45, -0.45], [0.45, -0.45], [0, 0], [-0.45, 0.45], [0.45, 0.45]],
-  6: [[-0.45, -0.5], [0.45, -0.5], [-0.45, 0], [0.45, 0], [-0.45, 0.5], [0.45, 0.5]],
-};
+import { playerPalette, withAlpha } from './board.js';
+import { drawDiceFace } from './skins.js';
 
 export function createDiceLayer() {
+  /** Equipped dice-skin recipe (meta/catalog.js → item.art). */
+  let art = { body: ['#ffffff', '#d8dbe2'], pip: '#1b2436', style: 'dots' };
   let value = 6;
   let rolling = false;
   let elapsed = 0;
@@ -127,28 +120,7 @@ export function createDiceLayer() {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fill();
 
-    // body
-    const half = size / 2;
-    roundRect(ctx, -half, -half, size, size, size * 0.22);
-    const g = ctx.createLinearGradient(-half, -half, half, half);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(0.55, '#f3f4f6');
-    g.addColorStop(1, '#d8dbe2');
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.lineWidth = Math.max(2, size * 0.045);
-    ctx.strokeStyle = withAlpha(p.dark, 0.85);
-    ctx.stroke();
-
-    // pips
-    const face = rolling ? faceShown : value;
-    const pr = size * 0.085;
-    ctx.fillStyle = p.dark;
-    for (const [ux, uy] of PIPS[face] || PIPS[1]) {
-      ctx.beginPath();
-      ctx.arc(ux * half * 0.78, uy * half * 0.78, pr, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    drawDiceFace(ctx, size, rolling ? faceShown : value, art, { accent: p.dark });
     ctx.restore();
   }
 
@@ -165,6 +137,10 @@ export function createDiceLayer() {
     setValue(v) {
       value = v;
       faceShown = v;
+    },
+    /** Apply the equipped dice skin. */
+    setArt(next) {
+      if (next) art = next;
     },
     setRng(fn) {
       rng = fn || Math.random;

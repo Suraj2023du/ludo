@@ -11,6 +11,7 @@
 
 import { BASE, FINISH, HOME_ENTRY, onTrack, toAbs } from '../engine/state.js';
 import { BASE_SLOTS, playerPalette, positionPoint, withAlpha } from './board.js';
+import { drawTokenShape } from './skins.js';
 
 export const tokenKey = (playerId, tokenIndex) => playerId + ':' + tokenIndex;
 
@@ -20,6 +21,8 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 export function createTokenLayer() {
   /** @type {Map<string, object>} key → animation */
   const anims = new Map();
+  /** Equipped token-skin recipe (meta/catalog.js → item.art). */
+  let art = {};
 
   /* ─────────────────────────── animation drivers ─────────────────────────── */
 
@@ -230,28 +233,15 @@ export function createTokenLayer() {
       ctx.stroke();
     }
 
-    // body: pawn-ish dome
-    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.15, x, y, r * 1.15);
-    g.addColorStop(0, p.light);
-    g.addColorStop(0.55, p.main);
-    g.addColorStop(1, p.dark);
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.lineWidth = Math.max(1.2, o.cell * 0.055);
-    ctx.strokeStyle = withAlpha('#000000', 0.35);
-    ctx.stroke();
+    // body — shape comes from the equipped token skin
+    drawTokenShape(ctx, x, y, r, p, art, { shadow: false });
 
-    // inner disc + glint
-    ctx.beginPath();
-    ctx.arc(x, y - r * 0.06, r * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha('#ffffff', o.finished ? 0.85 : 0.55);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x - r * 0.3, y - r * 0.42, r * 0.26, r * 0.16, -0.5, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha('#ffffff', 0.75);
-    ctx.fill();
+    if (o.finished) {
+      ctx.beginPath();
+      ctx.arc(x, y - r * 0.06, r * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha('#ffffff', 0.75);
+      ctx.fill();
+    }
   }
 
   /* ───────────────────────────────── hit test ───────────────────────────── */
@@ -320,6 +310,10 @@ export function createTokenLayer() {
     pick,
     pathPoints,
     baseSlotPoint,
+    /** Apply the equipped token skin. */
+    setArt(next) {
+      art = next || {};
+    },
     positionPoint: (layout, color, rel, i) => positionPoint(layout, color, rel, i),
     HOME_ENTRY,
   };
