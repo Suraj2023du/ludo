@@ -25,6 +25,7 @@ import { DisabledPurchaseProvider, createPurchaseService } from './services/purc
 import { createI18n } from './i18n/index.js';
 import { createGameView } from './ui/game.js';
 import { createHud } from './ui/hud.js';
+import { createHome } from './ui/home.js';
 import {
   createOverlay,
   createPassScreen,
@@ -89,6 +90,7 @@ export function boot() {
     if (meta) meta.setAttribute('content', t.page);
     view.setTheme(id);
     hud.setTheme(id);
+    if (home) home.applyTheme(id);
   }
 
   /* ──────────────────────────── screens setup ─────────────────────────── */
@@ -122,19 +124,56 @@ export function boot() {
     },
   });
 
-  /* ─────────────────────────── menu navigation ────────────────────────── */
+  /* ─────────────────────────────── the lobby ──────────────────────────── */
 
+  const PLAYABLE = { vsComputer: 1, passPlay: 1, quickMatch: 1 };
+
+  function openSettings() {
+    settingsScreen.render(stats);
+    router.show('settings');
+  }
+
+  function comingSoon(what) {
+    toaster.toast(what + ' — ' + i18n.t('common.soon'), 'info');
+  }
+
+  const home = createHome({
+    el: router.el('menu'),
+    bus,
+    i18n,
+    account,
+    wallet,
+    catalog,
+    ads,
+    prefs,
+    audio,
+    actions: {
+      onTile: (id) => {
+        if (PLAYABLE[id]) {
+          setupScreen.open(id);
+          router.show('setup');
+          return;
+        }
+        comingSoon(id);
+      },
+      onRail: (id) => comingSoon(id),
+      onNav: (id) => comingSoon(id),
+      onProfile: () => comingSoon('profile'),
+      onShop: () => comingSoon('shop'),
+      onSettings: openSettings,
+      onMissing: (id) => comingSoon(String(id || 'that')),
+    },
+  });
+
+  // Any remaining legacy [data-go] buttons (how-to shortcuts) still work.
   for (const btn of app.querySelectorAll('[data-go]')) {
     btn.addEventListener('click', () => {
       audio.unlock();
       audio.sfx.tap();
       const target = btn.dataset.go;
-      if (target === 'settings') {
-        settingsScreen.render(stats);
-        router.show('settings');
-      } else if (target === 'howto') {
-        router.show('howto');
-      } else {
+      if (target === 'settings') openSettings();
+      else if (target === 'howto') router.show('howto');
+      else {
         setupScreen.open(target);
         router.show('setup');
       }
@@ -373,22 +412,14 @@ export function boot() {
   router.onShow((name) => {
     if (name === 'game') view.start();
     else view.stop();
+    if (name === 'menu') home.start();
+    else home.stop();
   });
 
   /* ──────────────────────────── menu refresh ──────────────────────────── */
 
   function refreshMenu() {
-    const total = stats.all().total;
-    const el = app.querySelector('[data-menu="stats"]');
-    if (el) {
-      el.textContent = total.games
-        ? total.wins + ' wins in ' + total.games + ' games'
-        : 'No games played yet';
-    }
-    const offline = app.querySelector('[data-menu="offline"]');
-    if (offline) {
-      offline.textContent = prefs.persistent ? 'Works offline' : 'Private mode: nothing is saved';
-    }
+    home.render();
   }
 
   /* ─────────────────────────────── service worker ─────────────────────── */
@@ -434,6 +465,7 @@ export function boot() {
     audio,
     router,
     view,
+    home,
     save,
     account,
     wallet,

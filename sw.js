@@ -22,6 +22,7 @@ const PRECACHE = [
   './src/ui/styles.css',
   './src/ui/game.js',
   './src/ui/hud.js',
+  './src/ui/home.js',
   './src/ui/screens.js',
   './src/engine/state.js',
   './src/engine/rules.js',
