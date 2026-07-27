@@ -123,6 +123,8 @@ function createContext2D() {
     closePath() { },
     moveTo() { },
     lineTo() { },
+    quadraticCurveTo() { },
+    bezierCurveTo() { },
     arc() { },
     arcTo() { },
     ellipse() { },

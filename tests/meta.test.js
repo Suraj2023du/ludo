@@ -28,6 +28,14 @@ import {
 import { createI18n, LANGS } from '../src/i18n/index.js';
 import { createEventBus } from '../src/game/events.js';
 
+/**
+ * Every test gets its own storage key. tests/ui.test.js boots the real app at
+ * import time (top-level await), so the default save key is already populated
+ * by the time these tests run — an isolated key keeps them independent.
+ */
+let keyCounter = 0;
+const freshSave = () => createSave({ debounceMs: 0, key: 'ludoBattle.test.' + ++keyCounter });
+
 const seeded = (n) => {
   let i = 0;
   return () => {
@@ -39,7 +47,7 @@ const seeded = (n) => {
 /* ──────────────────────────── save document ──────────────────────────── */
 
 test('save: starts empty, patches sections and survives a flush + load', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   assert.equal(save.get('account').id, undefined);
   save.patch('account', { id: '123', name: 'Asha' });
   assert.equal(save.get('account').name, 'Asha');
@@ -49,13 +57,13 @@ test('save: starts empty, patches sections and survives a flush + load', () => {
   assert.equal(copy.v, SAVE_VERSION);
   assert.equal(copy.account.id, '123');
 
-  const other = createSave({ debounceMs: 0 });
+  const other = freshSave();
   other.load(copy);
   assert.equal(other.get('account').name, 'Asha');
 });
 
 test('save: touch() notifies subscribers and reset() clears everything', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const seen = [];
   save.subscribe((section) => seen.push(section));
   const wallet = save.get('wallet');
@@ -68,7 +76,7 @@ test('save: touch() notifies subscribers and reset() clears everything', () => {
 });
 
 test('save: a document from a newer build is discarded, not crashed on', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   save.load({ v: 99, account: { name: 'future' } });
   assert.equal(save.get('account').name, undefined);
 });
@@ -76,7 +84,7 @@ test('save: a document from a newer build is discarded, not crashed on', () => {
 /* ─────────────────────────────── account ─────────────────────────────── */
 
 test('account: creates an identity once and keeps it', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const a = createAccount({ save, rng: seeded(7) });
   const id = a.id;
   assert.match(id, /^\d{8}$/);
@@ -88,7 +96,7 @@ test('account: creates an identity once and keeps it', () => {
 });
 
 test('account: XP curve levels up and reports progress', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const bus = createEventBus();
   const ups = [];
   bus.on('account:levelUp', (e) => ups.push(e.level));
@@ -116,7 +124,7 @@ test('account: tiers follow the level', () => {
 });
 
 test('account: name is trimmed and clamped, profile fields persist', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const a = createAccount({ save, rng: seeded(5) });
   a.setName('   Ravi The Great Warrior   ');
   assert.equal(a.name.length <= 14, true);
@@ -126,7 +134,7 @@ test('account: name is trimmed and clamped, profile fields persist', () => {
 });
 
 test('account: VIP grants remove-ads and expires', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const a = createAccount({ save, rng: seeded(11) });
   assert.equal(a.isVip, false);
   assert.equal(a.removeAds, false);
@@ -141,7 +149,7 @@ test('account: VIP grants remove-ads and expires', () => {
 /* ──────────────────────────────── wallet ─────────────────────────────── */
 
 test('wallet: starts with a playable balance and tracks earn/spend', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const bus = createEventBus();
   const changes = [];
   bus.on('wallet:changed', (e) => changes.push(e));
@@ -158,7 +166,7 @@ test('wallet: starts with a playable balance and tracks earn/spend', () => {
 });
 
 test('wallet: spending more than you have fails and emits insufficient', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const bus = createEventBus();
   let short = null;
   bus.on('wallet:insufficient', (e) => {
@@ -171,7 +179,7 @@ test('wallet: spending more than you have fails and emits insufficient', () => {
 });
 
 test('wallet: stake and settle move coins the right way', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const w = createWallet({ save });
   const before = w.coins;
   const tier = tierById('newbie');
@@ -189,7 +197,7 @@ test('wallet: stake and settle move coins the right way', () => {
 });
 
 test('wallet: a too-expensive table cannot be entered', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const w = createWallet({ save });
   assert.equal(w.stake('bigwin'), false);
   assert.equal(w.coins, START_BALANCE.coins);
@@ -216,7 +224,7 @@ test('wallet: tier ladder is ordered and affordability picks the best one', () =
 });
 
 test('wallet: ledger keeps the recent history bounded', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const w = createWallet({ save });
   for (let i = 0; i < 60; i++) w.earn(COIN, 1, 'loop');
   const ledger = w.ledger();
@@ -227,7 +235,7 @@ test('wallet: ledger keeps the recent history bounded', () => {
 /* ──────────────────────────────── ads ────────────────────────────────── */
 
 test('ads: a watched ad pays its placement reward', async () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const bus = createEventBus();
   const wallet = createWallet({ save, bus });
   const provider = new LocalAdProvider({ lengthMs: 1 });
@@ -240,7 +248,7 @@ test('ads: a watched ad pays its placement reward', async () => {
 });
 
 test('ads: daily caps and cooldowns are enforced', async () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   let clock = 1000;
   const provider = new LocalAdProvider({ lengthMs: 1 });
   const ads = createAdService({ provider, save, now: () => clock });
@@ -262,7 +270,7 @@ test('ads: daily caps and cooldowns are enforced', async () => {
 });
 
 test('ads: a cancelled ad pays nothing', async () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const wallet = createWallet({ save });
   const provider = new LocalAdProvider({ lengthMs: 1 });
   provider.setPresenter(async () => false); // user backed out
@@ -274,7 +282,7 @@ test('ads: a cancelled ad pays nothing', async () => {
 });
 
 test('ads: VIP players are flagged as ad-suppressed', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const account = createAccount({ save, rng: seeded(2) });
   const ads = createAdService({ provider: new LocalAdProvider(), save, account });
   assert.equal(ads.suppressed, false);
@@ -285,7 +293,7 @@ test('ads: VIP players are flagged as ad-suppressed', () => {
 /* ────────────────────────────── purchases ────────────────────────────── */
 
 test('purchase: nothing can be bought in this build', async () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const bus = createEventBus();
   const wallet = createWallet({ save, bus });
   const shop = createPurchaseService({ provider: new DisabledPurchaseProvider(), bus, wallet });
@@ -311,7 +319,7 @@ test('purchase: the catalogue is complete and groupable', () => {
 });
 
 test('purchase: grantFree applies a product without any payment', () => {
-  const save = createSave({ debounceMs: 0 });
+  const save = freshSave();
   const wallet = createWallet({ save });
   const account = createAccount({ save, rng: seeded(4) });
   const shop = createPurchaseService({ provider: new DisabledPurchaseProvider(), wallet, account });
@@ -356,4 +364,142 @@ test('i18n: subscribers hear language changes', () => {
   i18n.setLang('hi');
   i18n.setLang('en');
   assert.deepEqual(seen, ['hi', 'en'], 'no duplicate notifications');
+});
+
+/* ────────────────────────────── cosmetics ────────────────────────────── */
+
+test('catalog: free items are owned and equipped by default', async () => {
+  const { createCatalog, DEFAULT_EQUIP, KINDS, ITEMS, UNLOCK } = await import('../src/meta/catalog.js');
+  const save = freshSave();
+  const c = createCatalog({ save });
+
+  for (const kind of KINDS) {
+    assert.ok(c.equippedItem(kind), 'something is equipped for ' + kind);
+    assert.equal(c.equippedId(kind), DEFAULT_EQUIP[kind]);
+    assert.ok(c.items(kind).length >= 9, kind + ' has a full grid');
+  }
+  const freeCount = ITEMS.filter((i) => i.unlock.type === UNLOCK.FREE).length;
+  assert.equal(c.stats().owned, freeCount);
+  assert.equal(c.stats().total, ITEMS.length);
+  assert.ok(ITEMS.length >= 45, 'catalogue is as rich as the reference: ' + ITEMS.length);
+});
+
+test('catalog: buying with coins and diamonds works, and only then can you equip', async () => {
+  const { createCatalog } = await import('../src/meta/catalog.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const c = createCatalog({ save, bus, wallet });
+
+  assert.equal(c.equip('dice.cricket'), false, 'cannot equip what you do not own');
+  const before = wallet.coins;
+  assert.deepEqual(c.purchase('dice.cricket'), { ok: true });
+  assert.equal(wallet.coins, before - 5000);
+  assert.equal(c.owned('dice.cricket'), true);
+  assert.equal(c.equip('dice.cricket'), true);
+  assert.equal(c.equippedId('dice'), 'dice.cricket');
+  assert.equal(c.isEquipped('dice.cricket'), true);
+
+  wallet._set(0, 0);
+  assert.equal(c.purchase('dice.king').reason, 'insufficient');
+  assert.equal(c.owned('dice.king'), false);
+});
+
+test('catalog: ad-unlock items track progress and unlock at the threshold', async () => {
+  const { createCatalog, itemById } = await import('../src/meta/catalog.js');
+  const save = freshSave();
+  const c = createCatalog({ save, wallet: createWallet({ save }) });
+  const id = 'dice.frost';
+  const need = itemById(id).unlock.need;
+
+  assert.equal(c.purchase(id).reason, 'watch-ads');
+  assert.deepEqual(c.progress(id), { have: 0, need });
+  for (let i = 0; i < need - 1; i++) c.addAdProgress(id);
+  assert.equal(c.owned(id), false);
+  assert.equal(c.status(id).have, need - 1);
+  const last = c.addAdProgress(id);
+  assert.equal(last.unlocked, true);
+  assert.equal(c.owned(id), true);
+});
+
+test('catalog: event and ranking items stay locked and say why', async () => {
+  const { createCatalog } = await import('../src/meta/catalog.js');
+  const save = freshSave();
+  const c = createCatalog({ save, wallet: createWallet({ save }) });
+  assert.equal(c.purchase('chat.ganesh').reason, 'event');
+  assert.equal(c.status('chat.ganesh').state, 'event');
+  assert.equal(c.purchase('token.champion').reason, 'ranking');
+  assert.equal(c.status('token.champion').state, 'rank');
+  assert.equal(c.grant('token.champion', 'reward'), true, 'a reward can still grant it');
+  assert.equal(c.status('token.champion').state, 'owned');
+});
+
+test('catalog: every theme item maps to a real palette and every art recipe is complete', async () => {
+  const { ITEMS } = await import('../src/meta/catalog.js');
+  const { THEMES } = await import('../src/render/board.js');
+  for (const item of ITEMS) {
+    assert.ok(item.name && item.unlock && item.unlock.type, 'item is describable: ' + item.id);
+    if (item.kind === 'theme') {
+      assert.ok(THEMES[item.theme], 'missing palette for ' + item.id);
+    } else {
+      assert.ok(item.art, 'missing art recipe for ' + item.id);
+    }
+  }
+  for (const key of Object.keys(THEMES)) {
+    const t = THEMES[key];
+    for (const field of ['page', 'board', 'track', 'center', 'line', 'frame', 'text', 'star']) {
+      assert.match(t[field], /^#[0-9a-f]{3,8}$/i, key + '.' + field + ' must be a colour');
+    }
+    for (const colour of ['red', 'green', 'yellow', 'blue']) {
+      for (const shade of ['main', 'dark', 'light']) {
+        assert.match(t.players[colour][shade], /^#[0-9a-f]{6}$/i, key + '.' + colour + '.' + shade);
+      }
+    }
+  }
+});
+
+test('catalog: skin painters run for every item without throwing', async () => {
+  const { ITEMS } = await import('../src/meta/catalog.js');
+  const { THEMES } = await import('../src/render/board.js');
+  const skins = await import('../src/render/skins.js');
+  const avatar = await import('../src/render/avatar.js');
+  const { installDom } = await import('../tools/dom-stub.js');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+  const dom = installDom({ htmlPath: join(root, 'index.html') });
+  const canvas = dom.document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const theme = THEMES.classic;
+
+  for (const item of ITEMS) {
+    if (item.kind === 'dice') {
+      for (let v = 1; v <= 6; v++) skins.drawDiceFace(ctx, 40, v, item.art);
+    } else if (item.kind === 'token') {
+      skins.drawTokenShape(ctx, 20, 20, 8, theme.players.red, item.art);
+      skins.drawTokenPreview(ctx, 64, theme, item.art);
+    } else if (item.kind === 'frame') {
+      skins.drawFrameRing(ctx, 20, 20, 14, item.art, 1000);
+    } else if (item.kind === 'chatbox') {
+      const style = skins.chatboxStyle(item.art);
+      assert.ok(style['--bubble-bg']);
+    } else {
+      skins.drawMiniBoard(ctx, 64, THEMES[item.theme]);
+    }
+  }
+  avatar.drawAvatarBlock(ctx, 24, 24, 20, {
+    avatar: { seed: 12345, style: 'bloom', tint: 40 },
+    frame: { ring: ['#fff', '#000'], ornament: 'crown' },
+    initial: 'A',
+    level: 12,
+    xpRatio: 0.4,
+  });
+  avatar.drawMascot(ctx, 40, 40, 60, 1200);
+  avatar.drawPodium(ctx, 0, 0, 30, 40, 1);
+  for (const style of ['bloom', 'beam', 'ring', 'wave', 'spark', 'grid']) {
+    avatar.drawAvatar(ctx, 20, 20, 18, { seed: 7, style, tint: 120 }, 'Z');
+  }
+  assert.ok(ctx.calls > 500, 'painters actually drew something: ' + ctx.calls);
+  dom.restore();
 });
