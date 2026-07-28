@@ -53,6 +53,8 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n
   let flash = 0;
   let flashColor = null;
   const stepTimers = new Set();
+  /** Items thrown at players (chat feature), animated on the canvas. */
+  const projectiles = [];
 
   /* ────────────────────────────── sizing ─────────────────────────────── */
 
@@ -100,7 +102,8 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n
     fx.update(dt);
     if (flash > 0) flash = Math.max(0, flash - dt);
 
-    const busy = tokens.isAnimating() || dice.rolling || fx.busy || flash > 0 || highlights.size > 0;
+    const busy =
+      tokens.isAnimating() || dice.rolling || fx.busy || flash > 0 || highlights.size > 0 || projectiles.length > 0;
     if (busy || dirty) {
       draw(ts);
       dirty = busy;
@@ -136,6 +139,7 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n
       drawTargets();
       tokens.draw(ctx, state, layout, theme, { highlights, now: ts });
       drawDice();
+      drawProjectiles(Date.now());
       if (flash > 0 && flashColor) drawFlash();
     }
     fx.draw(ctx);
@@ -269,6 +273,56 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n
     stepTimers.clear();
   }
 
+  /**
+   * Throw an item at a seat: an arcing projectile from the dice tray to that
+   * colour's base, then a splat. Pure canvas, no images.
+   */
+  function throwItem({ item, seat }) {
+    if (!state) return Promise.resolve();
+    const target = state.players[seat];
+    if (!target) return Promise.resolve();
+    const from = { x: layout.dice.x + layout.dice.size / 2, y: layout.dice.y };
+    const to = positionPoint(layout, target.color, -1, 1);
+    const pal = playerPalette(theme, target.color);
+    const started = Date.now();
+    const duration = 620;
+
+    projectiles.push({ item, from, to, started, duration, colour: item.colour || pal.main });
+    dirty = true;
+
+    return new Promise((resolve) => {
+      const id = setTimeout(() => {
+        fx.hit(to.x, to.y, item.colour || pal.main);
+        audio.sfx.capture();
+        resolve();
+      }, duration);
+      stepTimers.add(id);
+    });
+  }
+
+  function drawProjectiles(now) {
+    if (!projectiles.length) return;
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      const k = (now - p.started) / p.duration;
+      if (k >= 1) {
+        projectiles.splice(i, 1);
+        continue;
+      }
+      const x = p.from.x + (p.to.x - p.from.x) * k;
+      const y = p.from.y + (p.to.y - p.from.y) * k - Math.sin(k * Math.PI) * layout.cell * 3;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(k * Math.PI * 2.4);
+      ctx.font = Math.round(layout.cell * 1.3) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.item.icon, 0, 0);
+      ctx.restore();
+    }
+    dirty = true;
+  }
+
   const animator = {
     async roll(value, player) {
       const duration = ms('diceRoll', 560);
@@ -398,6 +452,7 @@ export function createGameView({ canvas, bus, audio, prefs, catalog = null, i18n
     resize,
     setTheme,
     applySkins,
+    throwItem,
     attach(next) {
       controller = next;
       if (controller) controller.setAnimator(animator);
