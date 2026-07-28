@@ -103,7 +103,8 @@
     <!-- ──────────────────────────── SETUP ─────────────────────────── -->
     <section class="screen screen--sheet" data-screen="setup" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-setup="back" aria-label="Back" data-i18n-aria="common.back">←</button>
+        <button class="icon-btn" type="button" data-setup="back" aria-label="Back"
+          data-i18n-aria="common.back">←</button>
         <h2 data-setup="title">Vs Computer</h2>
       </header>
 
@@ -131,7 +132,8 @@
     <!-- ─────────────────────────── HOW TO PLAY ────────────────────── -->
     <section class="screen screen--sheet" data-screen="howto" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-howto="back" aria-label="Back" data-i18n-aria="common.back">←</button>
+        <button class="icon-btn" type="button" data-howto="back" aria-label="Back"
+          data-i18n-aria="common.back">←</button>
         <h2 data-i18n="howto.title">How to Play</h2>
       </header>
       <div class="scroll">
@@ -161,7 +163,8 @@
     <!-- ─────────────────────────── SETTINGS ───────────────────────── -->
     <section class="screen screen--sheet" data-screen="settings" aria-hidden="true">
       <header class="sheet-head">
-        <button class="icon-btn" type="button" data-settings="back" aria-label="Back" data-i18n-aria="common.back">←</button>
+        <button class="icon-btn" type="button" data-settings="back" aria-label="Back"
+          data-i18n-aria="common.back">←</button>
         <h2 data-i18n="set.title">Settings</h2>
       </header>
 
@@ -262,12 +265,51 @@
     </div>
   </div>
 
+  <div class="overlay overlay--sheet" data-overlay="friends" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Friends">
+    <div class="card card--modal">
+      <header class="modal-head">
+        <h2 data-modal="title">Friends</h2>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
+      </header>
+      <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
+      <div class="modal-body" data-modal="body"></div>
+    </div>
+  </div>
+
+  <div class="overlay overlay--sheet" data-overlay="rank" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Leaderboard">
+    <div class="card card--modal">
+      <header class="modal-head">
+        <h2 data-modal="title">Leaderboard</h2>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
+      </header>
+      <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
+      <div class="modal-body" data-modal="body"></div>
+    </div>
+  </div>
+
+  <div class="overlay overlay--sheet" data-overlay="profile" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Profile">
+    <div class="card card--modal">
+      <header class="modal-head">
+        <h2 data-profile="title">Profile</h2>
+        <button class="modal-close" type="button" data-profile="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
+      </header>
+      <div class="modal-body" data-profile="body"></div>
+    </div>
+  </div>
+
   <div class="overlay overlay--sheet" data-overlay="tasks" aria-hidden="true" role="dialog" aria-modal="true"
     aria-label="Tasks">
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Task</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body" data-modal="body"></div>
@@ -279,7 +321,8 @@
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Skin</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body grid-3" data-modal="body"></div>
@@ -291,7 +334,8 @@
     <div class="card card--modal">
       <header class="modal-head">
         <h2 data-modal="title">Shop</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
       </header>
       <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
       <div class="modal-body" data-modal="body"></div>
@@ -302,7 +346,8 @@
     <div class="card card--spin">
       <header class="modal-head">
         <h2 data-spin="title">Lucky Spin</h2>
-        <button class="modal-close" type="button" data-modal="close" aria-label="Close" data-i18n-aria="common.close">✕</button>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
       </header>
       <canvas class="wheel" data-spin="wheel" width="300" height="300" aria-hidden="true"></canvas>
       <p class="muted" data-spin="status"></p>
