@@ -1,27 +1,13 @@
 /**
  * engine/rules.js — PURE Ludo King ruleset.
  *
- * ZERO DOM. ZERO canvas. ZERO imports outside engine/.
- * Every rule is expressed as a pure function:  (state, input) → (newState, events)
- * The input state is never mutated. That property is what makes Phase 2
- * (Firebase authoritative sync) a drop-in: replay the same inputs, get the same
- * state on every device.
+ * ZERO DOM, ZERO canvas, ZERO imports outside engine/.
+ * Every rule is a pure function: (state, input) → (newState, events). The input
+ * state is never mutated, which is what makes Phase 2 sync a drop-in: replay the
+ * same inputs, get the same state on every device.
  *
- * Implemented rules
- * ─────────────────
- *  • A token leaves base ONLY on a 6, landing on its own start square.
- *  • Rolling a 6 grants an extra turn.
- *  • Three consecutive 6s in one turn forfeits the turn (no move allowed).
- *  • Landing on an opponent on a NON-safe square captures it (→ base).
- *    Capturing grants an extra turn (Ludo King behaviour, configurable).
- *  • 8 safe squares: 4 coloured start squares + 4 stars. No capture there.
- *  • Never captures your own colour; same-colour tokens may stack freely.
- *  • Home column is colour-private; an EXACT roll is required to finish,
- *    overshoot means that token simply cannot move.
- *  • Finishing a token does NOT by itself grant an extra turn.
- *  • Winner = first player home with all 4 tokens; play continues so the
- *    remaining players get ranks 2nd / 3rd / (4th).
- *  • No legal move → the turn passes automatically.
+ * The full ruleset is documented in README.md ("The ruleset") and every line of
+ * it has a test in tests/rules.test.js.
  */
 
 import {

@@ -1,26 +1,12 @@
 /**
  * engine/state.js — PURE game state + board topology.
+ * ZERO DOM, ZERO canvas, ZERO imports outside engine/. JSON-serializable.
  *
- * ZERO DOM. ZERO canvas. ZERO imports outside engine/.
- * Everything here is JSON-serializable so Phase 2 can store a game document
- * in Firestore / Realtime DB verbatim.
- *
- * ── POSITION MODEL ────────────────────────────────────────────────────────────
- * A token position is a single integer ("rel" = relative to its own colour):
- *
- *   -1                 → in base (yard), not yet on the board
- *   0   .. 50          → on the 52-cell shared ring, relative to this colour's
- *                        start square. 0 is the colour's start square,
- *                        50 (HOME_ENTRY) is the last shared cell before the
- *                        colour turns into its private home column.
- *   51  .. 56          → private home column (6 steps). 56 (FINISH) is the
- *                        centre finish triangle.
- *
- * Absolute ring index (shared by all colours, used for collision / capture):
- *   abs = (START_ABS[colour] + rel) % 52     for 0 <= rel <= 50
- *
- * Total distance start-square → finish = 50 + 6 = 56 steps.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Position model ("rel", relative to the token's own colour):
+ *   -1 = base · 0..50 = shared ring (0 = start, 50 = HOME_ENTRY)
+ *   51..56 = private home column (56 = FINISH, the centre)
+ *   abs = (START_ABS[colour] + rel) % 52   → used for capture/collision
+ * See README.md for the full table.
  */
 
 export const SCHEMA_VERSION = 1;

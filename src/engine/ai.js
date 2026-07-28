@@ -1,31 +1,15 @@
 /**
  * engine/ai.js — PURE bot brain.
  *
- * ZERO DOM. ZERO canvas. ZERO imports outside engine/.
- * chooseMove() never mutates the state; it only reads it and returns one of the
- * move objects produced by rules.legalMoves().
+ * ZERO DOM, ZERO canvas, ZERO imports outside engine/. chooseMove() never
+ * mutates the state; it returns one of the moves from rules.legalMoves().
  *
- * ── DECISION MODEL ───────────────────────────────────────────────────────────
- * Moves are bucketed into strict priority tiers (exactly the order asked for):
- *
- *   1. FINISH   — bring a token home
- *   2. CAPTURE  — send an opponent back to base
- *   3. SAFE     — land on a safe square (start/star) or slip into the home column
- *   4. ADVANCE  — push the furthest token forward
- *   5. EXIT     — bring a new token out of the base on a 6
- *
- * Inside a tier, continuous modifiers (progress, threat, escape value) refine
- * the choice. Modifiers are clamped to ±95 while tiers are 200 apart, so a
- * modifier can never flip the priority order — the bot is predictable to reason
- * about and easy to unit-test, while still feeling alive.
- *
- * EXIT is promoted when the bot has nothing on the board (0 or 1 token out),
- * because a bot with an empty board has no game to play.
- *
- * Finally, all moves scoring within `tolerance` of the best are treated as
- * equally good and one is picked at random — that is what stops the bot from
- * looking like a machine.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Strict priority tiers: FINISH > CAPTURE > SAFE > ADVANCE > EXIT.
+ * Inside a tier, modifiers (progress, threat, escape value) refine the choice.
+ * Modifiers are clamped to ±95 while tiers are 200 apart, so a modifier can
+ * never flip the priority order. Moves within `tolerance` of the best are
+ * treated as equal and one is picked at random, so the bot does not feel
+ * mechanical. EXIT is promoted when the board is empty.
  */
 
 import { legalMoves, MOVE_KIND } from './rules.js';
