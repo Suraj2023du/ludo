@@ -734,3 +734,103 @@ test('tasks: claimable() counts what is waiting', async () => {
   tasks.claim('win1');
   assert.equal(tasks.claimable(), 0);
 });
+
+/* ─────────────────────────────── social ──────────────────────────────── */
+
+async function socialFixture() {
+  const { createSocial } = await import('../src/meta/social.js');
+  const save = freshSave();
+  const bus = createEventBus();
+  const wallet = createWallet({ save, bus });
+  const account = createAccount({ save, bus, rng: seeded(31) });
+  const social = createSocial({ save, bus, account, wallet, rng: () => 0.42 });
+  return { save, bus, wallet, account, social };
+}
+
+test('social: the simulated pool is stable across instances', async () => {
+  const { createSocial } = await import('../src/meta/social.js');
+  const save = freshSave();
+  const a = createSocial({ save, rng: () => 0.7 });
+  const first = a.pool().map((p) => p.id + p.name);
+  const b = createSocial({ save });
+  assert.deepEqual(b.pool().map((p) => p.id + p.name), first, 'same people every launch');
+  assert.equal(a.pool().length, 40);
+  for (const p of a.pool()) {
+    assert.ok(p.name.length > 0 && p.name.length <= 14);
+    assert.ok(p.level >= 2 && p.gamesWon <= p.gamesPlayed);
+  }
+});
+
+test('social: add, accept, remove, block and report', async () => {
+  const { social } = await socialFixture();
+  assert.equal(social.requests().length, 2, 'seeded friend requests');
+
+  const someone = social.nearby()[0];
+  assert.deepEqual(social.addFriend(someone.id), { ok: true });
+  assert.equal(social.isFriend(someone.id), true);
+  assert.equal(social.addFriend(someone.id).reason, 'already');
+  assert.equal(social.friendCount(), 1);
+
+  const request = social.requests()[0];
+  social.addFriend(request.id);
+  assert.equal(social.requests().length, 1, 'accepting clears the request');
+
+  assert.equal(social.removeFriend(someone.id), true);
+  assert.equal(social.isFriend(someone.id), false);
+
+  const target = social.nearby()[1];
+  assert.equal(social.block(target.id), true);
+  assert.equal(social.isBlocked(target.id), true);
+  assert.equal(social.addFriend(target.id).reason, 'blocked');
+  assert.equal(social.nearby().some((p) => p.id === target.id), false, 'blocked people disappear');
+
+  const bad = social.nearby()[2];
+  social.report(bad.id);
+  assert.equal(social.isBlocked(bad.id), true, 'reporting also blocks');
+});
+
+test('social: gifts cost diamonds, add charm and are refused when broke', async () => {
+  const { social, wallet, account } = await socialFixture();
+  const target = social.pool()[0];
+  const charmBefore = target.charm;
+  const gems = wallet.diamonds;
+  const gift = social.GIFTS[0];
+
+  const res = social.sendGift(target.id, gift.id);
+  assert.equal(res.ok, true);
+  assert.equal(wallet.diamonds, gems - gift.cost);
+  assert.equal(target.charm, charmBefore + gift.charm);
+  assert.equal(account.snapshot().giftsOut, 1);
+
+  wallet._set(0, 0);
+  assert.equal(social.sendGift(target.id, 'rocket').reason, 'insufficient');
+});
+
+test('social: leaderboards rank everyone and always place me', async () => {
+  const { social, wallet } = await socialFixture();
+  for (const board of social.BOARDS) {
+    const out = social.leaderboard(board.id, 20);
+    assert.equal(out.rows.length, 20);
+    for (let i = 1; i < out.rows.length; i++) {
+      assert.ok(out.rows[i - 1].value >= out.rows[i].value, board.id + ' is sorted');
+      assert.equal(out.rows[i].rank, i + 1);
+    }
+    assert.ok(social.myRank(board.id) > 0, 'I have a rank on ' + board.id);
+  }
+  // becoming rich moves me up the coins board
+  const before = social.myRank('coins');
+  wallet._set(999999999, 0);
+  assert.ok(social.myRank('coins') <= before);
+  assert.equal(social.leaderboard('coins').me.rank, social.myRank('coins'));
+});
+
+test('social: the inbox collects events and unread clears', async () => {
+  const { social, bus, account } = await socialFixture();
+  assert.equal(social.unread(), 0);
+  account.addXp(100000); // triggers level-ups → inbox messages
+  assert.ok(social.unread() > 0);
+  assert.ok(social.inbox().length <= 30);
+  social.markAllRead();
+  assert.equal(social.unread(), 0);
+  void bus;
+});

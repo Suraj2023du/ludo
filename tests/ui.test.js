@@ -343,6 +343,79 @@ test('ui: completing a task lets you claim it from the modal', async () => {
   api.taskScreen.close();
 });
 
+test('ui: the friends modal lists people, requests, nearby and the inbox', async () => {
+  api.friendsModal.open('nearby');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="friends"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelectorAll('[data-tab]').length, 4);
+  const cards = el.querySelectorAll('[data-friend]');
+  assert.ok(cards.length >= 5, 'nearby people are listed');
+
+  const before = api.social.friendCount();
+  cards[0].querySelector('.friend-action').click();
+  await tick(20);
+  assert.equal(api.social.friendCount(), before + 1, 'adding a friend works');
+
+  el.querySelector('[data-tab="friends"]').click();
+  await tick(10);
+  assert.ok(el.querySelectorAll('[data-friend]').length >= 1);
+
+  el.querySelector('[data-tab="requests"]').click();
+  await tick(10);
+  el.querySelector('[data-tab="inbox"]').click();
+  await tick(10);
+  assert.equal(api.social.unread(), 0, 'opening the inbox marks it read');
+  api.friendsModal.close();
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: the leaderboard shows a podium and my own row', async () => {
+  api.leaderboard.open('charm');
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="rank"]');
+  assert.equal(el.querySelectorAll('[data-tab]').length, 4);
+  assert.equal(el.querySelectorAll('[data-podium]').length, 3, 'top three on the podium');
+  assert.ok(el.querySelectorAll('[data-lb]').length >= 10, 'the rest as a list');
+  assert.match(el.querySelector('.shop-notice').textContent, /\d/, 'my rank is shown');
+
+  for (const kind of ['gallantry', 'coins', 'lucky']) {
+    el.querySelector('[data-tab="' + kind + '"]').click();
+    await tick(10);
+    assert.equal(el.querySelectorAll('[data-podium]').length, 3);
+  }
+  api.leaderboard.close();
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: my profile is editable and another player offers gifts and blocking', async () => {
+  api.profileCard.open();
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="profile"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  const inputs = el.querySelectorAll('input');
+  assert.ok(inputs.length >= 2, 'name and bio are editable');
+  inputs[0].value = 'Suraj';
+  inputs[1].value = 'Ludo is life';
+  el.querySelectorAll('.btn')[el.querySelectorAll('.btn').length - 1].click();
+  await tick(20);
+  assert.equal(api.account.name, 'Suraj');
+  assert.equal(api.account.snapshot().bio, 'Ludo is life');
+  assert.ok(el.querySelectorAll('.pstat').length === 4);
+
+  const other = api.social.pool()[5];
+  api.profileCard.open(other.id);
+  await tick(20);
+  assert.equal(el.querySelectorAll('[data-gift]').length, 5, 'five gifts');
+  api.wallet._set(50000, 500);
+  const charmBefore = other.charm;
+  el.querySelector('[data-gift="rose"]').click();
+  await tick(20);
+  assert.ok(other.charm > charmBefore, 'the gift landed');
+  api.profileCard.close();
+  assert.deepEqual(dom.console.errors, []);
+});
+
 test('ui: switching to Hindi translates the whole shell, not just labels', async () => {
   const howto = doc.querySelector('[data-screen="howto"]');
   const beforeRule = howto.querySelector('[data-i18n="howto.r1"]').textContent;
