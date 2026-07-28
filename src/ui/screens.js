@@ -316,9 +316,10 @@ export function createSetupScreen({ el, prefs, audio, onStart, onBack, i18n = nu
 
 /* ───────────────────────────── settings screen ──────────────────────────── */
 
-export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset, themeIds, i18n = null, onLangChange }) {
+export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedChange, onReset, themeIds, i18n = null, onLangChange, onTimerChange }) {
   const t = i18n ? (k, v) => i18n.t(k, v) : (k) => k;
   const langRow = el.querySelector('[data-set="lang"]');
+  const timerRow = el.querySelector('[data-set="timer"]');
   const soundBtn = el.querySelector('[data-set="sound"]');
   const vibeBtn = el.querySelector('[data-set="vibration"]');
   const themeRow = el.querySelector('[data-set="theme"]');
@@ -362,7 +363,9 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
       b.addEventListener('click', () => {
         prefs.set(key, value);
         audio.sfx.tap();
-        for (const sib of row.children) sib.setAttribute('aria-pressed', String(sib.dataset.value === value));
+        for (const sib of row.children) {
+          sib.setAttribute('aria-pressed', String(sib.dataset.value === String(value)));
+        }
         if (onPick) onPick(value);
       });
       row.append(b);
@@ -404,6 +407,10 @@ export function createSettingsScreen({ el, prefs, audio, onThemeChange, onSpeedC
       const BOT_KEY = { easy: 'bot.easy', normal: 'bot.normal', hard: 'bot.hard' };
       buildOptions(speedRow, ['slow', 'normal', 'fast'], 'speed', onSpeedChange, (v) => t(SPEED_KEY[v]));
       buildOptions(botRow, ['easy', 'normal', 'hard'], 'botLevel', null, (v) => t(BOT_KEY[v]));
+      if (timerRow) {
+        const TIMER_KEY = { 0: 'timer.off', 15: 'timer.15', 30: 'timer.30' };
+        buildOptions(timerRow, [0, 15, 30], 'turnTimer', onTimerChange, (v) => t(TIMER_KEY[v]));
+      }
       if (langRow && i18n) {
         langRow.textContent = '';
         for (const lang of i18n.langs) {
@@ -540,5 +547,10 @@ export function translateDom(root, t) {
     const key = el.getAttribute('data-i18n-aria');
     const text = t(key);
     if (text && text !== key) el.setAttribute('aria-label', text);
+  }
+  for (const el of root.querySelectorAll('[data-i18n-ph]')) {
+    const key = el.getAttribute('data-i18n-ph');
+    const text = t(key);
+    if (text && text !== key) el.setAttribute('placeholder', text);
   }
 }

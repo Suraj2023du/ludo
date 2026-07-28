@@ -2338,3 +2338,258 @@ input:focus-visible {
   font-size: 12px;
   font-weight: 800;
 }
+
+/* ───────────────────────────── TURN TIMER ───────────────────────────── */
+
+.panel-timer {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--c);
+  min-width: 0;
+}
+
+.panel.is-timing {
+  position: relative;
+}
+
+/* conic ring around the panel: --t is 0..100, written once per tick */
+.panel.is-timing::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 14px;
+  padding: 2px;
+  background: conic-gradient(var(--c) calc(var(--t, 100) * 1%), rgba(0, 0, 0, 0.35) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+.panel.is-urgent .panel-timer {
+  color: #ff6b6b;
+  animation: pop 0.5s ease infinite alternate;
+}
+
+/* ───────────────────────────── IN-GAME CHAT ─────────────────────────── */
+
+.chat {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(180deg, rgba(8, 12, 24, 0.86), rgba(8, 12, 24, 0.97));
+  border-top: 1px solid var(--line);
+  transform: translateY(102%);
+  transition: transform 0.24s ease;
+  max-height: 62%;
+}
+
+.chat.is-open {
+  transform: none;
+}
+
+.chat-feed {
+  flex: 1 1 auto;
+  min-height: 90px;
+  max-height: 34vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  scrollbar-width: none;
+}
+
+.chat-feed::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.chat-row.is-mine {
+  flex-direction: row-reverse;
+}
+
+.chat-row.is-system {
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+}
+
+.chat-who {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  padding: 6px 10px;
+  border: 1.5px solid;
+  border-radius: 12px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.chat-strip {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 0 0 auto;
+}
+
+.chat-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-quick {
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-emoji {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.chat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.chat-send {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5f8dff, #2b4fb5);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.chat-bar {
+  position: absolute;
+  right: 10px;
+  bottom: 76px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-fab {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(10, 16, 30, 0.85);
+  color: #fff;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.chat-fab:active {
+  transform: scale(0.94);
+}
+
+.chat-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff6b6b, #c1121f);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.throw-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.chat-throw {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.chat-throw i {
+  font-size: 22px;
+  font-style: normal;
+}
+
+.chat-throw span {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.screen--game {
+  position: relative;
+}

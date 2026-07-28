@@ -32,6 +32,8 @@ import { createSpinScreen } from './ui/spin.js';
 import { createRewards } from './meta/rewards.js';
 import { createTasks } from './meta/tasks.js';
 import { createTaskScreen } from './ui/tasks.js';
+import { createTurnTimer } from './game/timer.js';
+import { createChat } from './ui/chat.js';
 import { createSocial } from './meta/social.js';
 import { createFriendsModal, createLeaderboard, createProfileCard } from './ui/social.js';
 import {
@@ -124,6 +126,9 @@ export function boot() {
     audio,
     i18n,
     onLangChange: () => retranslate(),
+    onTimerChange: (secs) => {
+      if (session && session.timer) session.timer.setSeconds(Number(secs) || 0);
+    },
     // only board themes the player actually owns are offered here
     themeIds: () =>
       catalog
@@ -213,6 +218,47 @@ export function boot() {
     rewards,
     ads,
     audio,
+  });
+
+  /* ─────────────────────────── in-game chat ───────────────────────────── */
+
+  const chat = createChat({
+    root: gameScreen,
+    throwEl: document.querySelector('[data-overlay="throw"]'),
+    bus,
+    i18n,
+    audio,
+    catalog,
+    wallet,
+    account,
+    humanSeat: () => (session ? session.humanId : 0),
+    theme: () => getTheme(prefs.get('theme')),
+    onThrow: (payload) => view.throwItem(payload),
+  });
+
+  gameScreen.querySelector('[data-chat="throwbtn"]').addEventListener('click', () => {
+    audio.sfx.tap();
+    chat.openThrowSheet();
+  });
+  const throwOverlay = createOverlay(document.querySelector('[data-overlay="throw"]'));
+  document.querySelector('[data-throw="close"]').addEventListener('click', () => {
+    audio.sfx.tap();
+    throwOverlay.close();
+  });
+
+  // Tapping an opponent panel throws the pending item, otherwise it likes them.
+  gameScreen.querySelector('[data-hud="panels"]').addEventListener('click', (e) => {
+    if (!session) return;
+    const panels = [...gameScreen.querySelectorAll('[data-hud="panels"] .panel')];
+    const target = e.target && e.target.closest ? e.target.closest('.panel') : null;
+    const seat = target ? panels.indexOf(target) : -1;
+    if (seat < 0) return;
+    if (seat === session.humanId) {
+      profileCard.open();
+      return;
+    }
+    if (chat.pendingThrow) chat.throwAt(seat);
+    else chat.like(seat);
   });
 
   /* ──────────────────── social: friends, profile, ranks ───────────────── */
@@ -408,6 +454,7 @@ export function boot() {
 
   function endSession() {
     if (!session) return;
+    if (session.timer) session.timer.stop();
     session.controller.destroy();
     view.detach();
     session = null;
@@ -429,12 +476,19 @@ export function boot() {
       state: resumeState,
     });
 
+    const timer = createTurnTimer({
+      controller: game.controller,
+      bus,
+      seconds: Number(prefs.get('turnTimer')) || 0,
+    });
+
     session = {
       controller: game.controller,
       mode: game.mode,
       setup,
       humanId: humanSeatOf(game.state),
       adapter,
+      timer,
     };
 
     prefs.set('lastMode', game.mode);
@@ -729,6 +783,7 @@ export function boot() {
     taskScreen,
     tasks,
     social,
+    chat,
     friendsModal,
     leaderboard,
     profileCard,

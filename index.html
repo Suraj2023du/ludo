@@ -204,6 +204,11 @@
         </div>
 
         <div class="field">
+          <span class="field-label" data-i18n="set.timer">Turn timer</span>
+          <div class="chip-row" data-set="timer"></div>
+        </div>
+
+        <div class="field">
           <span class="field-label" data-i18n="set.record">Your record</span>
           <div class="stats" data-set="stats"></div>
         </div>
@@ -228,6 +233,25 @@
       </div>
 
       <div class="panels" data-hud="panels"></div>
+
+      <div class="chat" data-chat="panel" aria-hidden="true">
+        <div class="chat-feed" data-chat="feed" role="log" aria-live="polite"></div>
+        <div class="chat-strip" data-chat="quick"></div>
+        <div class="chat-strip chat-strip--emoji" data-chat="emoji"></div>
+        <div class="chat-input-row">
+          <input class="chat-input" type="text" data-chat="input" maxlength="120" placeholder="Say something…"
+            data-i18n-ph="chat.say" aria-label="Chat message" />
+          <button class="chat-send" type="button" data-chat="send" aria-label="Send"
+            data-i18n-aria="chat.send">➤</button>
+        </div>
+      </div>
+
+      <div class="chat-bar">
+        <button class="chat-fab" type="button" data-chat="toggle" aria-label="Table chat"
+          data-i18n-aria="chat.title">💬<span class="chat-badge" data-chat="badge" hidden></span></button>
+        <button class="chat-fab" type="button" data-chat="throwbtn" aria-label="Throw something"
+          data-i18n-aria="chat.throwLabel">🍅</button>
+      </div>
     </section>
   </div>
 
@@ -262,6 +286,14 @@
         data-i18n="result.again">Play again</button>
       <button class="btn btn--ghost btn--wide" type="button" data-result="menu" data-i18n="result.menu">Main
         menu</button>
+    </div>
+  </div>
+
+  <div class="overlay" data-overlay="throw" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Throw">
+    <div class="card">
+      <h2 data-i18n="chat.throwLabel">Throw something</h2>
+      <div class="throw-row" data-chat="throw"></div>
+      <button class="btn btn--ghost btn--wide" type="button" data-throw="close" data-i18n="common.close">Close</button>
     </div>
   </div>
 
