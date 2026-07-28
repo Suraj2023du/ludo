@@ -134,7 +134,7 @@ for (const [file, text] of allJs) {
     if (src.has(file)) shippedKeys.add(key);
   }
 }
-for (const m of html.matchAll(/data-i18n(?:-aria)?="([\w.]+)"/g)) {
+for (const m of html.matchAll(/data-i18n(?:-aria|-ph)?="([\w.]+)"/g)) {
   usedKeys.add(m[1]);
   shippedKeys.add(m[1]);
 }
@@ -201,6 +201,11 @@ for (const [file, text] of src) {
   for (const m of text.matchAll(/bus\.emit\(\s*'([\w:]+)'/g)) addTo(emitted, m[1], file);
   for (const m of text.matchAll(/emit\(\s*'([\w:]+)'/g)) addTo(emitted, m[1], file);
   for (const m of text.matchAll(/bus\.on(?:ce)?\(\s*'([\w:]+)'/g)) addTo(listened, m[1], file);
+  // Files that subscribe through a variable (bus.on(evt, ...) inside a loop over
+  // a list of names) count every event-shaped literal they contain as listened.
+  if (/bus\.on\(\s*[a-z_$][\w$]*\s*,/.test(text)) {
+    for (const m of text.matchAll(/'([a-z][\w]*:[\w]+)'/g)) addTo(listened, m[1], file);
+  }
 }
 // engine events flow through rules.js EV and are emitted via emitAll
 const engineEvents = new Set(

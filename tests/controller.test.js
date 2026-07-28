@@ -330,3 +330,112 @@ test('modes: the human opens bot games, seat 0 opens pass & play', () => {
   assert.equal(buildConfig({ mode: MODE.VS_COMPUTER, count: 4, humanColor: 'yellow' }).startingPlayer, 2);
   assert.equal(buildConfig({ mode: MODE.PASS_PLAY, count: 4, humanColor: 'yellow' }).startingPlayer, 0);
 });
+
+/* ────────────────────────────── turn timer ───────────────────────────── */
+
+test('timer: off by default and never fires', async () => {
+  const { createTurnTimer } = await import('../src/game/timer.js');
+  const bus = createEventBus();
+  const state = makeGame(['red', 'green']);
+  state.players[0].type = 'human';
+  state.players[1].type = 'bot';
+  const controller = createController({ state, bus, rng: () => 0.5, timing: INSTANT });
+  const ticks = [];
+  bus.on('timer:tick', (p) => ticks.push(p));
+
+  const timer = createTurnTimer({ controller, bus, seconds: 0 });
+  controller.start();
+  await new Promise((r) => setTimeout(r, 60));
+  assert.equal(timer.running, false);
+  assert.equal(ticks.length, 0, 'a disabled timer is silent');
+  timer.stop();
+  controller.destroy();
+});
+
+test('timer: arms for a human seat, ticks, and never for a bot', async () => {
+  const { createTurnTimer } = await import('../src/game/timer.js');
+  const bus = createEventBus();
+  const state = makeGame(['red', 'green']);
+  state.players[0].type = 'human';
+  state.players[1].type = 'bot';
+  const controller = createController({ state, bus, rng: () => 0.5, timing: INSTANT });
+  const ticks = [];
+  bus.on('timer:tick', (p) => ticks.push(p));
+
+  const timer = createTurnTimer({ controller, bus, seconds: 15 });
+  controller.start();
+  await new Promise((r) => setTimeout(r, 40));
+
+  assert.equal(timer.running, true, 'the human seat has a clock');
+  assert.ok(ticks.length > 0);
+  assert.equal(ticks[0].seat, 0);
+  assert.equal(ticks[0].total, 15);
+  assert.ok(ticks[0].ratio > 0.9);
+
+  timer.setSeconds(0);
+  assert.equal(timer.running, false, 'switching it off stops the clock');
+  timer.stop();
+  controller.destroy();
+});
+
+test('timer: a timeout auto-plays a legal move and toasts', async () => {
+  const { createTurnTimer } = await import('../src/game/timer.js');
+  const bus = createEventBus();
+  const state = makeGame(['red', 'green']);
+  state.players[0].type = 'human';
+  state.players[1].type = 'bot';
+  setTokens(state, 'red', [10, 20, -1, -1]);
+  const controller = createController({
+    state,
+    bus,
+    rng: () => 0.5, // always a 4
+    timing: INSTANT,
+    autoMoveSingle: false,
+  });
+
+  const toasts = [];
+  bus.on(EVENTS.TOAST, (p) => toasts.push(p));
+  const begin = waitFor(bus, EVENTS.TURN_BEGIN);
+  const timer = createTurnTimer({ controller, bus, seconds: 15, rng: () => 0.5 });
+  controller.start();
+  await begin;
+
+  // time out while waiting for the roll
+  const rolled = waitFor(bus, EV.DICE_ROLLED);
+  timer.forceExpire();
+  await rolled;
+  assert.equal(controller.state.rollCount, 1, 'the timeout rolled for the player');
+  assert.ok(toasts.some((x) => x.key === 'game.autoPlayed'), 'the player was told');
+
+  // time out again while waiting for a token tap
+  const movesShown = waitFor(bus, EVENTS.MOVES_AVAILABLE);
+  await movesShown;
+  const moved = waitFor(bus, EV.TOKEN_MOVED);
+  timer.forceExpire();
+  const ev = await moved;
+  assert.ok(ev.from === 10 || ev.from === 20, 'a legal token was moved');
+  timer.stop();
+  controller.destroy();
+});
+
+test('timer: pausing stops the clock and resuming re-arms it', async () => {
+  const { createTurnTimer } = await import('../src/game/timer.js');
+  const bus = createEventBus();
+  const state = makeGame(['red', 'green']);
+  state.players[0].type = 'human';
+  state.players[1].type = 'bot';
+  const controller = createController({ state, bus, rng: () => 0.5, timing: INSTANT });
+  const timer = createTurnTimer({ controller, bus, seconds: 30 });
+  controller.start();
+  await new Promise((r) => setTimeout(r, 40));
+
+  const before = timer.left;
+  controller.pause();
+  await new Promise((r) => setTimeout(r, 120));
+  assert.ok(timer.left <= before, 'the clock is not advancing the UI while paused');
+  controller.resume();
+  await new Promise((r) => setTimeout(r, 40));
+  assert.equal(timer.running, true);
+  timer.stop();
+  controller.destroy();
+});

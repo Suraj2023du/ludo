@@ -267,16 +267,32 @@ class Node {
     if (set) set.delete(fn);
   }
 
+  /** Fires listeners on this node, then bubbles up like a real DOM event. */
   dispatchEvent(event) {
     event.target = event.target || this;
-    const set = this._listeners.get(event.type);
-    if (set) for (const fn of [...set]) fn(event);
+    if (typeof event.stopPropagation !== 'function') {
+      event.stopPropagation = () => {
+        event._stopped = true;
+      };
+    }
+    if (typeof event.preventDefault !== 'function') event.preventDefault = () => { };
+
+    let node = this;
+    while (node) {
+      const set = node._listeners && node._listeners.get(event.type);
+      if (set) {
+        event.currentTarget = node;
+        for (const fn of [...set]) fn(event);
+      }
+      if (event._stopped) break;
+      node = node.parentElement;
+    }
     return true;
   }
 
   /** Convenience used by the tests: fire a click. */
   click() {
-    this.dispatchEvent({ type: 'click', target: this, preventDefault() { }, stopPropagation() { } });
+    this.dispatchEvent({ type: 'click', target: this });
   }
 }
 
@@ -413,6 +429,21 @@ class Element extends Node {
 
   querySelector(selector) {
     return this.querySelectorAll(selector)[0] || null;
+  }
+
+  /** Nearest self-or-ancestor matching the selector, like the DOM API. */
+  closest(selector) {
+    const groups = String(selector)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map(parseSimpleSelector);
+    let node = this;
+    while (node && node.nodeType === 1) {
+      if (groups.some((g) => matches(node, g))) return node;
+      node = node.parentElement;
+    }
+    return null;
   }
 
   querySelectorAll(selector) {

@@ -343,6 +343,55 @@ test('ui: completing a task lets you claim it from the modal', async () => {
   api.taskScreen.close();
 });
 
+test('ui: table chat opens, sends, filters and rate limits', async () => {
+  const session = api.startGame({ mode: 'vsComputer', count: 4, humanColor: 'red', names: {} });
+  session.controller.setTiming(INSTANT);
+  await tick(60);
+
+  const panel = doc.querySelector('[data-chat="panel"]');
+  const feed = doc.querySelector('[data-chat="feed"]');
+  assert.ok(doc.querySelectorAll('[data-quick]').length >= 6, 'quick phrases built');
+  assert.ok(doc.querySelectorAll('[data-emoji]').length >= 8, 'emoji row built');
+
+  doc.querySelector('[data-chat="toggle"]').click();
+  await tick(10);
+  assert.equal(panel.classList.contains('is-open'), true);
+
+  const before = feed.children.length;
+  assert.equal(api.chat.send('Good luck!'), true);
+  assert.equal(feed.children.length, before + 1, 'the message is in the feed');
+
+  assert.equal(api.chat.send('you bastard'), false, 'profanity is blocked');
+  await tick(20);
+  assert.equal(api.chat.send('again'), false, 'rate limited right after a send');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: tapping an opponent panel likes them, or throws the pending item', async () => {
+  const panels = doc.querySelectorAll('[data-hud="panels"] .panel');
+  assert.equal(panels.length, 4);
+  const feed = doc.querySelector('[data-chat="feed"]');
+
+  // a plain tap on an opponent is a like
+  const before = feed.children.length;
+  panels[1].click();
+  await tick(20);
+  assert.ok(feed.children.length > before, 'a like appears in the feed');
+
+  // arm a throw, then tap: coins are spent and the projectile animates
+  const coins = api.wallet.coins;
+  const item = api.chat.THROWABLE[0];
+  api.chat.beginThrow(item);
+  assert.ok(api.chat.pendingThrow, 'an item is armed');
+  panels[2].click();
+  await tick(80);
+  assert.equal(api.wallet.coins, coins - item.cost, 'the throw cost coins');
+  assert.equal(api.chat.pendingThrow, null, 'the item was used');
+  assert.deepEqual(dom.console.errors, []);
+  api.exitToMenu();
+  await tick(20);
+});
+
 test('ui: the friends modal lists people, requests, nearby and the inbox', async () => {
   api.friendsModal.open('nearby');
   await tick(20);
