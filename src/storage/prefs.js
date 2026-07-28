@@ -18,6 +18,7 @@ export const DEFAULT_PREFS = Object.freeze({
   lastMode: 'vsComputer',
   seenHowTo: false,
   lang: 'en', // en | hi
+  turnTimer: 0, // seconds per turn, 0 = off
 });
 
 /** Tiny safe wrapper around localStorage. */

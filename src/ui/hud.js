@@ -59,9 +59,12 @@ export function createHud({ root, bus, prefs, i18n }) {
       const home = document.createElement('span');
       home.className = 'panel-home';
 
-      card.append(dot, meta, home);
+      const timer = document.createElement('span');
+      timer.className = 'panel-timer';
+
+      card.append(dot, meta, timer, home);
       panels.append(card);
-      cards.set(player.id, { card, sub, home, name });
+      cards.set(player.id, { card, sub, home, name, timer });
     }
     update(state);
   }
@@ -85,6 +88,25 @@ export function createHud({ root, bus, prefs, i18n }) {
       c.sub.textContent = bits.join(' · ');
     }
     if (diceValue) diceValue.textContent = state.dice ? String(state.dice) : '–';
+  }
+
+  /**
+   * Turn countdown, drawn as a conic ring on the active panel.
+   * Updated from the timer's tick (4x a second), never per animation frame.
+   */
+  function onTick(p) {
+    for (const [id, card] of cards) {
+      const on = p.running && p.seat === id;
+      card.card.classList.toggle('is-timing', on);
+      if (on) {
+        card.card.style.setProperty('--t', String(Math.round(p.ratio * 100)));
+        card.card.classList.toggle('is-urgent', p.left <= 5);
+        if (card.timer) card.timer.textContent = t('game.timeLeft', { secs: Math.ceil(p.left) });
+      } else if (card.timer) {
+        card.timer.textContent = '';
+        card.card.classList.remove('is-urgent');
+      }
+    }
   }
 
   function say(text, tone) {
@@ -144,8 +166,9 @@ export function createHud({ root, bus, prefs, i18n }) {
     say(t('game.finished', { name: nameOf(p.playerId), rank: ordinal(p.rank) }), 'good')
   );
   bus.on(EV.GAME_OVER, () => say(t('game.over'), 'normal'));
+  bus.on('timer:tick', onTick);
 
-  return { build, update, say, setTheme, setAccent };
+  return { build, update, say, setTheme, setAccent, onTick };
 }
 
 export function ordinal(n) {
