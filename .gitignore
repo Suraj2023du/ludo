@@ -3,6 +3,11 @@ node_modules/
 .env
 *.log
 
+# tooling scratch space — may contain credentials, never commit
+.github/.jetro/
+firebase-config.js
+audit.txt
+
 # editor / os noise
 Thumbs.db
 .vscode/*
