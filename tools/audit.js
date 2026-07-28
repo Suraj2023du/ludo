@@ -234,6 +234,8 @@ const PUBLIC_EVENTS = new Set([
   'shop:refused',
   'shop:purchased',
   'shop:granted',
+  'social:like',
+  'social:reported',
 ]);
 for (const [name, files] of emitted) {
   if (PUBLIC_EVENTS.has(name)) continue;

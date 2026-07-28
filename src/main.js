@@ -32,6 +32,8 @@ import { createSpinScreen } from './ui/spin.js';
 import { createRewards } from './meta/rewards.js';
 import { createTasks } from './meta/tasks.js';
 import { createTaskScreen } from './ui/tasks.js';
+import { createSocial } from './meta/social.js';
+import { createFriendsModal, createLeaderboard, createProfileCard } from './ui/social.js';
 import {
   createOverlay,
   createPassScreen,
@@ -63,7 +65,8 @@ export function boot() {
   const rewards = createRewards({ save, bus, wallet, account });
   /** Which seat is "me" in the live game — used to credit tasks correctly. */
   const isMe = (playerId) => !!session && playerId === session.humanId;
-  const tasks = createTasks({ save, bus, wallet, account, catalog, isMe });
+  const social = createSocial({ save, bus, account, wallet, rewards });
+  const tasks = createTasks({ save, bus, wallet, account, catalog, social, isMe });
   const i18n = createI18n({ lang: prefs.get('lang') || 'en', onChange: (l) => prefs.set('lang', l) });
 
   const router = createRouter({ root: app, audio });
@@ -212,6 +215,53 @@ export function boot() {
     audio,
   });
 
+  /* ──────────────────── social: friends, profile, ranks ───────────────── */
+
+  /** Start a game against a specific (simulated) player. */
+  function playWith(player) {
+    startGame({
+      mode: MODE.QUICK_MATCH,
+      count: 2,
+      humanColor: prefs.get('playerColor') || 'red',
+      names: { yellow: player.name, green: player.name, blue: player.name },
+      opponent: player.id,
+    });
+  }
+
+  const profileCard = createProfileCard({
+    el: document.querySelector('[data-overlay="profile"]'),
+    bus,
+    i18n,
+    social,
+    account,
+    wallet,
+    catalog,
+    stats,
+    audio,
+    onPlay: playWith,
+  });
+
+  const friendsModal = createFriendsModal({
+    el: document.querySelector('[data-overlay="friends"]'),
+    bus,
+    i18n,
+    social,
+    audio,
+    catalog,
+    onPlay: playWith,
+    onProfile: (id) => profileCard.open(id),
+  });
+
+  const leaderboard = createLeaderboard({
+    el: document.querySelector('[data-overlay="rank"]'),
+    bus,
+    i18n,
+    social,
+    audio,
+    catalog,
+    onProfile: (id) => profileCard.open(id),
+  });
+
   /* ─────────────────────────────── the lobby ──────────────────────────── */
 
   const PLAYABLE = { vsComputer: 1, passPlay: 1, quickMatch: 1 };
@@ -242,6 +292,10 @@ export function boot() {
           router.show('setup');
           return;
         }
+        if (id === 'friends') {
+          friendsModal.open('friends');
+          return;
+        }
         comingSoon(id);
       },
       onRail: (id) => {
@@ -250,15 +304,18 @@ export function boot() {
         else if (id === 'shop') shopScreen.open('packs');
         else if (id === 'removeAds') shopScreen.open('packs');
         else if (id === 'spinEvent') spinScreen.open();
+        else if (id === 'messages') friendsModal.open('inbox');
         else comingSoon(id);
       },
       onNav: (id) => {
         if (id === 'skins') skinShop.open('dice');
         else if (id === 'spin') spinScreen.open();
         else if (id === 'getCoins') shopScreen.watchForCoins('getCoins');
+        else if (id === 'friends') friendsModal.open('friends');
+        else if (id === 'ranking') leaderboard.open('charm');
         else comingSoon(id);
       },
-      onProfile: () => comingSoon('profile'),
+      onProfile: () => profileCard.open(),
       onShop: (tab) => shopScreen.open(tab === 'diamonds' ? 'diamonds' : 'coins'),
       onSettings: openSettings,
       onMissing: (id) => comingSoon(String(id || 'that')),
@@ -280,6 +337,8 @@ export function boot() {
     home.setBadge('rail', 'tasks', tasks.claimable() || 0);
     home.setBadge('rail', 'vip', s.canClaimDaily ? '1' : 0);
     home.setBadge('rail', 'spinEvent', s.canSpin ? '1' : 0);
+    home.setBadge('rail', 'messages', social.unread() || 0);
+    home.setBadge('nav', 'friends', social.requests().length || 0);
     badgesBusy = false;
   }
 
@@ -304,6 +363,8 @@ export function boot() {
     'tasks:milestone',
     'account:levelUp',
     'catalog:unlocked',
+    'social:inbox',
+    'social:friends',
   ]) {
     bus.on(evt, refreshBadges);
   }
@@ -667,6 +728,10 @@ export function boot() {
     spinScreen,
     taskScreen,
     tasks,
+    social,
+    friendsModal,
+    leaderboard,
+    profileCard,
     rewards,
     i18n,
     startGame,
