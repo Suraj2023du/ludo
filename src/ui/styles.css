@@ -2822,3 +2822,124 @@ input:focus-visible {
   font-size: 10px;
   font-weight: 800;
 }
+
+/* ────────────────────────────── TOURNAMENT ───────────────────────────── */
+
+.tour-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgb(123 92 255 / 35%), rgb(90 43 216 / 25%));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+}
+
+.tour-clock {
+  display: grid;
+  gap: 2px;
+}
+
+.tour-clock-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.tour-clock-value {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-score {
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tour-score b {
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.tour-games {
+  font-size: 10px;
+}
+
+.tour-lives {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.tour-life {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff9aa2, #e8464f 65%, #a51f28);
+  box-shadow: 0 0 6px rgb(232 70 79 / 55%);
+}
+
+.tour-life.is-spent {
+  background: rgb(255 255 255 / 14%);
+  box-shadow: none;
+}
+
+.tour-board {
+  margin: 8px 0 4px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 18%);
+}
+
+.tour-row {
+  display: grid;
+  grid-template-columns: 34px 34px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgb(255 255 255 / 6%);
+  font-size: 12px;
+}
+
+.tour-row--head {
+  grid-template-columns: 34px 1fr auto auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  background: rgb(255 255 255 / 5%);
+}
+
+.tour-row.is-me {
+  background: rgb(244 185 60 / 18%);
+  font-weight: 700;
+}
+
+.tour-rank {
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tour-points {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tour-gift {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 58px;
+  justify-content: flex-end;
+  color: var(--muted);
+}

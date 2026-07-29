@@ -18,6 +18,9 @@ import { EVENTS } from './events.js';
  */
 export const ONLINE_MODE = 'online';
 
+/** Tournament tables: an online table that scores into an arena session. */
+export const TOURNAMENT_MODE = 'tournament';
+
 export const MODE_META = Object.freeze({
   [MODE.VS_COMPUTER]: {
     id: MODE.VS_COMPUTER,
@@ -59,6 +62,16 @@ export const MODE_META = Object.freeze({
     humans: 1,
     statsKey: 'online',
     staked: true,
+  },
+  [TOURNAMENT_MODE]: {
+    id: TOURNAMENT_MODE,
+    title: 'Tournament',
+    blurb: 'Score as high as you can before the clock runs out',
+    minPlayers: 2,
+    maxPlayers: 4,
+    defaultPlayers: 4,
+    humans: 1,
+    statsKey: 'tournament',
   },
 });
 

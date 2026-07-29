@@ -22,6 +22,7 @@ export function emptySave() {
     tasks: {},
     rewards: {},
     social: {},
+    tournament: {},
     records: {},
   };
 }

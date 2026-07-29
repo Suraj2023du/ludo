@@ -682,6 +682,123 @@ test('ui: winning a staked table pays the prize and counts as an online game', a
   assert.deepEqual(dom.console.errors, []);
 });
 
+/* ──────────────────────── Wave 7: tournament arenas ───────────────────── */
+
+test('ui: the TOURNAMENT tile opens both arenas and takes one entry fee', async () => {
+  api.wallet._set(2000000, 500);
+  api.router.show('menu', { silent: true });
+  doc.querySelector('[data-tile="tournament"]').click();
+  await tick(30);
+
+  const el = doc.querySelector('[data-overlay="tour"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelectorAll('[data-tab]').length, 2, 'All Day and Blitz Arena');
+  assert.ok(el.querySelectorAll('[data-lb]').length >= 10, 'the ranking table is filled');
+  assert.ok(el.querySelector('.tour-row.is-me'), 'my row is highlighted');
+
+  const arena = api.tournament.arenaById(api.tourScreen.arena);
+  const before = api.wallet.coins;
+  el.querySelector('[data-tour="enter"]').click();
+  await tick(30);
+  assert.equal(api.wallet.coins, before - arena.entry, 'the entry fee was taken once');
+
+  const state = api.tournament.state(arena.id);
+  assert.equal(state.entered, true);
+  assert.equal(state.lives, arena.lives);
+  assert.equal(el.querySelectorAll('.tour-life').length, arena.lives, 'a dot per life');
+  assert.match(el.querySelector('[data-tour="clock"]').textContent, /^\d+:\d\d(:\d\d)?$/);
+  assert.ok(el.querySelector('[data-tour="play"]'), 'and now it is playable');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: each arena is entered separately', async () => {
+  const el = doc.querySelector('[data-overlay="tour"]');
+  el.querySelector('[data-tab="blitz"]').click();
+  await tick(20);
+  assert.equal(api.tourScreen.arena, 'blitz');
+  assert.equal(api.tournament.state('blitz').entered, false, 'entering All Day did not enter Blitz');
+  assert.ok(el.querySelector('[data-tour="enter"]'), 'blitz still wants an entry fee');
+
+  const blitz = api.tournament.arenaById('blitz');
+  const before = api.wallet.coins;
+  el.querySelector('[data-tour="enter"]').click();
+  await tick(30);
+  assert.equal(api.wallet.coins, before - blitz.entry);
+  assert.equal(api.tournament.state('blitz').lives, blitz.lives);
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: playing a tournament table spends a life and scores into the arena', async () => {
+  const el = doc.querySelector('[data-overlay="tour"]');
+  const livesBefore = api.tournament.state('blitz').lives;
+
+  let scored = null;
+  api.bus.on('tour:score', (e) => {
+    scored = e;
+  });
+
+  el.querySelector('[data-tour="play"]').click();
+  await tick(40);
+  assert.equal(api.tournament.state('blitz').lives, livesBefore - 1, 'a life was spent');
+  assert.equal(api.router.current, 'game');
+  const session = api.session;
+  assert.equal(session.mode, 'tournament');
+  assert.equal(session.online.tournament, 'blitz');
+  assert.equal(session.controller.state.players.length, 2, 'blitz is a duel');
+
+  // finish the table quickly: three tokens home, one on the home-entry square
+  session.controller.setTiming(INSTANT);
+  session.adapter.latency = { min: 0, max: 0 };
+  const mine = session.controller.state.players[session.humanId];
+  mine.tokens = [FINISH, FINISH, FINISH, 50];
+  mine.finished = 3;
+
+  const drive = setInterval(() => {
+    const c = session.controller;
+    if (c.canRoll()) c.roll();
+    else if (c.canMove()) c.selectMove(c.currentMoves()[0]);
+  }, 1);
+  await new Promise((resolve, reject) => {
+    const guard = setTimeout(() => reject(new Error('the tournament table never finished')), 25000);
+    const poll = setInterval(() => {
+      if (!scored) return;
+      clearInterval(poll);
+      clearTimeout(guard);
+      resolve();
+    }, 5);
+  });
+  clearInterval(drive);
+
+  assert.ok(scored.score > 0, 'the table was scored');
+  assert.equal(scored.arena, 'blitz');
+  assert.equal(api.tournament.state('blitz').best, scored.best);
+  assert.equal(api.tournament.state('blitz').games, 1);
+  assert.ok(api.tournament.myRank('blitz') > 0, 'we are on the board');
+
+  api.exitToMenu();
+  await tick(30);
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: an expired arena pays out the moment you look at it', async () => {
+  // Rewind the session end past the deadline, exactly as a real expiry would.
+  api.tournament._session('blitz').endsAt = Date.now() - 1000;
+  const before = api.wallet.coins;
+  const rank = api.tournament.myRank('blitz');
+  const expected = api.tournament.prizeFor('blitz', rank);
+
+  api.tourScreen.open('blitz');
+  await tick(20);
+  assert.equal(api.wallet.coins, before + expected, 'the prize for our final rank was paid');
+  assert.equal(api.tournament.state('blitz').entered, false, 'the session closed');
+  const el = doc.querySelector('[data-overlay="tour"]');
+  assert.ok(el.querySelector('[data-tour="enter"]'), 'and it offers a fresh entry');
+  api.tourScreen.close();
+  await tick(10);
+  assert.equal(el.classList.contains('is-open'), false);
+  assert.deepEqual(dom.console.errors, []);
+});
+
 test('ui: teardown — the DOM shim is removed from the process', () => {
   dom.restore();
   assert.equal(typeof globalThis.document, 'undefined');

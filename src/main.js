@@ -9,7 +9,7 @@
 import { MODE, PLAYER_TYPE, currentPlayer } from './engine/state.js';
 import { EV } from './engine/rules.js';
 import { createEventBus, EVENTS } from './game/events.js';
-import { buildConfig, createGame, MODE_META, ONLINE_MODE, pickColors } from './game/modes.js';
+import { buildConfig, createGame, MODE_META, ONLINE_MODE, TOURNAMENT_MODE, pickColors } from './game/modes.js';
 import { LocalAdapter } from './sync/local.js';
 import { SimulatedOnlineAdapter } from './sync/simulated.js';
 import { getTheme, playerPalette } from './render/board.js';
@@ -38,6 +38,8 @@ import { createChat } from './ui/chat.js';
 import { createSocial } from './meta/social.js';
 import { createFriendsModal, createLeaderboard, createProfileCard } from './ui/social.js';
 import { createGoldRoom, createMatchmaking, createOnlineModal } from './ui/online.js';
+import { createTournament } from './meta/tournament.js';
+import { createTournamentScreen } from './ui/tournament.js';
 import { formatAmount, tierById } from './meta/wallet.js';
 import {
   createOverlay,
@@ -394,6 +396,36 @@ export function boot() {
     onPlay: playOnline,
   });
 
+  /* ─────────────────────────── tournaments ───────────────────────────── */
+
+  const tournament = createTournament({ save, bus, wallet, account, social });
+
+  /** One tournament table: same wire as an online game, scored into the arena. */
+  function playTournament({ arenaId, seats }) {
+    const humanColor = prefs.get('playerColor') || 'red';
+    const opponents = social.pool().slice(0, Math.max(0, seats - 1));
+    return startGame({
+      mode: TOURNAMENT_MODE,
+      count: seats,
+      humanColor,
+      names: nameSeats(seats, humanColor, opponents),
+      botLevel: 'hard',
+      online: { seats, format: 'classic', tournament: arenaId },
+    });
+  }
+
+  const tourScreen = createTournamentScreen({
+    el: document.querySelector('[data-overlay="tour"]'),
+    bus,
+    i18n,
+    tournament,
+    wallet,
+    ads,
+    audio,
+    catalog,
+    onPlay: playTournament,
+  });
+
   const goldRoom = createGoldRoom({
     el: document.querySelector('[data-overlay="gold"]'),
     i18n,
@@ -438,6 +470,7 @@ export function boot() {
         if (id === 'online') onlineModal.open();
         else if (id === 'bigWin') onlineModal.open({ tierId: 'diamond', seats: 2 });
         else if (id === 'goldRoom') goldRoom.open();
+        else if (id === 'tournament') tourScreen.open();
         else if (id === 'friends') friendsModal.open('friends');
         else comingSoon(id);
       },
@@ -742,6 +775,24 @@ export function boot() {
     }
     resume.clear();
 
+    // A tournament table scores into the arena session instead of paying coins.
+    const arenaId = !watching && session.online ? session.online.tournament : null;
+    if (arenaId) {
+      const out = tournament.submit(arenaId, {
+        rank: me ? me.rank : 0,
+        players: state.players.length,
+        finished: me ? me.finished : 0,
+        captures: me ? me.captures : 0,
+        turns: state.turnCount,
+      });
+      toaster.toast(
+        i18n.t(out.improved ? 'tour.newBest' : 'tour.scored', { score: out.score }),
+        out.improved ? 'good' : 'info',
+        2600
+      );
+      tasks.track('tourSilver', out.best >= 900 ? 1 : 0);
+    }
+
     // Pay out a staked table, then say exactly what happened to the money.
     const stake = !watching && session.online ? session.online : null;
     if (stake && stake.tierId) {
@@ -943,6 +994,9 @@ export function boot() {
     matchmaking,
     playOnline,
     watchTable,
+    tournament,
+    tourScreen,
+    playTournament,
     rewards,
     i18n,
     startGame,

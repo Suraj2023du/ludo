@@ -103,8 +103,12 @@ for (const sel of attrSelectors) {
   if (!pair) continue;
   const needle = pair[1] + '="' + pair[2] + '"';
   const inHtml = html.includes(needle);
+  const prop = pair[1].replace(/^data-/, '').replace(/-(\w)/g, (x, c) => c.toUpperCase());
   const builtInJs = [...src.values()].some(
-    (t) => t.includes('.dataset.' + pair[1].replace(/^data-/, '').replace(/-(\w)/g, (x, c) => c.toUpperCase()))
+    (t) =>
+      t.includes('.dataset.' + prop) ||
+      // ui/dom.js props: h('b', { dataset: { tour: 'clock' } })
+      new RegExp('dataset:\\s*\\{[^}]*\\b' + prop + ":\\s*'" + pair[2] + "'").test(t)
   );
   if (!inHtml && !builtInJs) err('selector ' + sel + ' matches nothing in index.html');
 }

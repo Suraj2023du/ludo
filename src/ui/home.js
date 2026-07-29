@@ -50,7 +50,7 @@ const TILES = [
   { id: 'passPlay', icon: 'phone', titleKey: 'home.passPlay', cls: 'yellow', base: 28000 },
   { id: 'bigWin', icon: 'trophy', titleKey: 'home.bigWin', subKey: 'home.bigWinSub', cls: 'gold', base: 41000 },
   { id: 'goldRoom', icon: 'coin', titleKey: 'home.goldRoom', cls: 'amber', base: 18000 },
-  { id: 'tournament', icon: 'lucky', titleKey: 'home.tournament', cls: 'crimson', base: 95000, soon: true },
+  { id: 'tournament', icon: 'lucky', titleKey: 'home.tournament', cls: 'crimson', base: 95000 },
   { id: 'friends', icon: 'friends', titleKey: 'home.friends', cls: 'cyan', base: 12000, soon: true },
   { id: 'snakes', icon: 'snake', titleKey: 'home.snakes', cls: 'violet', base: 24000, soon: true },
 ];
