@@ -501,6 +501,187 @@ test('ui: switching to Hindi translates the whole shell, not just labels', async
   assert.deepEqual(dom.console.errors, []);
 });
 
+/* ──────────────── Wave 7: online tables, matchmaking, gold room ───────── */
+
+test('ui: the ONLINE tile opens a working stake picker', async () => {
+  api.wallet._set(2000000, 500);
+  api.router.show('menu', { silent: true });
+  doc.querySelector('[data-home="online"]').click();
+  await tick(20);
+
+  const el = doc.querySelector('[data-overlay="online"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.ok(el.querySelectorAll('[data-chip]').length >= 4, 'format and seat chips');
+  assert.equal(el.querySelectorAll('[data-equipped]').length, 3, 'dice / theme / frame strip');
+
+  const tierEl = el.querySelector('.stake-tier');
+  const first = tierEl.textContent;
+  el.querySelector('[data-stake="down"]').click();
+  await tick(10);
+  const cheaper = el.querySelector('.stake-tier').textContent;
+  assert.notEqual(cheaper, first, 'the stepper changes the tier');
+
+  el.querySelector('[data-stake="up"]').click();
+  await tick(10);
+  assert.equal(el.querySelector('.stake-tier').textContent, first, 'and steps back');
+
+  // 4 players
+  el.querySelector('[data-chip="4"]').click();
+  await tick(10);
+  assert.equal(el.querySelector('[data-chip="4"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(el.querySelector('[data-online="play"]').disabled, false, 'affordable table is playable');
+
+  el.querySelector('[data-online="close"]').click();
+  await tick(10);
+  assert.equal(el.classList.contains('is-open'), false);
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: BIG WIN opens the same picker at the highest stake', async () => {
+  doc.querySelector('[data-tile="bigWin"]').click();
+  await tick(20);
+  const el = doc.querySelector('[data-overlay="online"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.equal(el.querySelector('.stake-tier').textContent, 'DIAMOND');
+  api.onlineModal.close();
+  await tick(10);
+});
+
+test('ui: matchmaking fills every seat, then a staked table starts', async () => {
+  api.wallet._set(2000000, 500);
+  const before = api.wallet.coins;
+  const entry = api.wallet.tierById('bronze').entry;
+
+  const starting = api.playOnline({ format: 'classic', seats: 4, tierId: 'bronze' });
+  await tick(60);
+  const match = doc.querySelector('[data-overlay="match"]');
+  assert.equal(match.classList.contains('is-open'), true, 'the search overlay is up');
+  assert.equal(match.querySelectorAll('[data-slot]').length, 4, 'four seats to fill');
+  assert.equal(api.wallet.coins, before, 'nothing is charged while searching');
+
+  const session = await starting;
+  assert.ok(session, 'the table started');
+  assert.equal(match.classList.contains('is-open'), false, 'the search overlay closed');
+  assert.equal(api.wallet.coins, before - entry, 'exactly one entry fee was taken');
+  assert.equal(session.mode, 'online');
+  assert.equal(session.online.tierId, 'bronze');
+  assert.equal(session.spectator, false);
+  assert.equal(session.controller.state.players.length, 4);
+
+  // only our seat is ours to play; the rest arrive over the wire
+  const local = session.controller.state.players.filter((p) => session.adapter.isLocalSeat(p.id));
+  assert.equal(local.length, 1);
+  assert.equal(local[0].id, session.humanId);
+  assert.deepEqual(dom.console.errors, []);
+  api.exitToMenu();
+  await tick(30);
+});
+
+test('ui: cancelling the search costs nothing and starts no game', async () => {
+  const before = api.wallet.coins;
+  const starting = api.playOnline({ seats: 2, tierId: 'silver' });
+  await tick(40);
+  doc.querySelector('[data-match="cancel"]').click();
+  const session = await starting;
+  assert.equal(session, null, 'no table was created');
+  assert.equal(api.wallet.coins, before, 'no entry fee was taken');
+  assert.equal(api.session, null);
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: a table you cannot afford sends you to the shop instead', async () => {
+  api.wallet._set(10, 0);
+  const session = await api.playOnline({ seats: 2, tierId: 'diamond' });
+  assert.equal(session, null);
+  assert.equal(api.wallet.coins, 10, 'the balance is untouched');
+  assert.equal(doc.querySelector('[data-overlay="shop"]').classList.contains('is-open'), true);
+  api.shopScreen.close();
+  await tick(10);
+  api.wallet._set(2000000, 500);
+});
+
+test('ui: the Gold Room lists live tables and lets you watch one', async () => {
+  doc.querySelector('[data-tile="goldRoom"]').click();
+  await tick(30);
+  const el = doc.querySelector('[data-overlay="gold"]');
+  assert.equal(el.classList.contains('is-open'), true);
+  assert.ok(el.querySelectorAll('[data-tab]').length >= 3, 'a tab per watchable tier');
+  const rows = el.querySelectorAll('[data-table]');
+  assert.ok(rows.length >= 4, 'live tables are listed');
+  assert.match(el.querySelector('.gold-clock').textContent, /^\d\d:\d\d$/);
+
+  el.querySelectorAll('[data-tab]')[2].click();
+  await tick(20);
+  assert.ok(el.querySelectorAll('[data-table]').length >= 4, 'switching tier re-lists');
+
+  el.querySelectorAll('[data-table]')[0].click();
+  await tick(40);
+  assert.equal(el.classList.contains('is-open'), false);
+  assert.equal(api.router.current, 'game');
+  assert.equal(api.session.spectator, true, 'watching, not playing');
+  assert.equal(api.session.controller.canRoll(), false, 'a watcher cannot roll');
+  assert.equal(api.resume.has(), false, 'a watched table is never offered as "resume"');
+  assert.deepEqual(dom.console.errors, []);
+  api.exitToMenu();
+  await tick(30);
+});
+
+test('ui: winning a staked table pays the prize and counts as an online game', async () => {
+  api.wallet._set(1000000, 500);
+  const tier = api.wallet.tierById('newbie');
+  const gamesBefore = (api.stats.all().modes.online || { games: 0 }).games;
+
+  const session = api.startGame({
+    mode: 'online',
+    count: 2,
+    humanColor: 'red',
+    names: { yellow: 'Aarav' },
+    online: { tierId: 'newbie', seats: 2, format: 'classic' },
+  });
+  session.controller.setTiming(INSTANT);
+  session.adapter.latency = { min: 0, max: 0 };
+  api.wallet.stake('newbie');
+  const afterStake = api.wallet.coins;
+  await tick(40);
+
+  // Three tokens home and the last one on the home-entry square: our seat is a
+  // few rolls from winning while the opponent is still stuck in its base.
+  const mine = session.controller.state.players[session.humanId];
+  mine.tokens = [FINISH, FINISH, FINISH, 50];
+  mine.finished = 3;
+
+  let settled = null;
+  api.bus.on('wallet:settled', (e) => {
+    settled = e;
+  });
+  const drive = setInterval(() => {
+    const c = session.controller;
+    if (c.canRoll()) c.roll();
+    else if (c.canMove()) c.selectMove(c.currentMoves()[0]);
+  }, 1);
+  await new Promise((resolve, reject) => {
+    const guard = setTimeout(() => reject(new Error('the staked table never finished')), 20000);
+    const poll = setInterval(() => {
+      if (!settled) return;
+      clearInterval(poll);
+      clearTimeout(guard);
+      resolve();
+    }, 5);
+  });
+  clearInterval(drive);
+
+  assert.equal(settled.rank, 1, 'we came first');
+  assert.equal(settled.prize, tier.winner);
+  assert.equal(api.wallet.coins, afterStake + tier.winner, 'the advertised prize was paid');
+  assert.equal((api.stats.all().modes.online || {}).games, gamesBefore + 1, 'it counts as an online game');
+  assert.equal(api.resume.has(), false, 'a staked table is never offered as "resume"');
+
+  api.exitToMenu();
+  await tick(30);
+  assert.equal(api.session, null);
+  assert.deepEqual(dom.console.errors, []);
+});
+
 test('ui: teardown — the DOM shim is removed from the process', () => {
   dom.restore();
   assert.equal(typeof globalThis.document, 'undefined');
