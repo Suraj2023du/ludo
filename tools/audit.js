@@ -177,6 +177,14 @@ for (const [, text] of src) {
   for (const m of text.matchAll(/class="([a-z][\w\- ]*)"/g)) {
     for (const c of m[1].split(/\s+/)) if (CLASS_TOKEN.test(c)) usedClasses.add(c);
   }
+  // ui/dom.js element specs: h('button.chip.is-on#go', …)
+  for (const m of text.matchAll(/\bh\(\s*'([a-z][\w.#-]*)'/g)) {
+    for (const c of m[1].split('#')[0].split('.').slice(1)) if (CLASS_TOKEN.test(c)) usedClasses.add(c);
+  }
+  // class: { 'gold-x2': cond } / class: ['a', 'b'] object and array forms
+  for (const m of text.matchAll(/class:\s*[[{]([^\]}]*)[\]}]/g)) {
+    for (const q of m[1].matchAll(/'([a-z][\w-]*)'/g)) usedClasses.add(q[1]);
+  }
 }
 for (const c of usedClasses) {
   if (!cssClasses.has(c) && !c.startsWith('is-') && !c.includes('--')) {
