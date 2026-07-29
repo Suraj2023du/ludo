@@ -9,8 +9,9 @@
 import { MODE, PLAYER_TYPE, currentPlayer } from './engine/state.js';
 import { EV } from './engine/rules.js';
 import { createEventBus, EVENTS } from './game/events.js';
-import { createGame, MODE_META } from './game/modes.js';
+import { buildConfig, createGame, MODE_META, ONLINE_MODE, pickColors } from './game/modes.js';
 import { LocalAdapter } from './sync/local.js';
+import { SimulatedOnlineAdapter } from './sync/simulated.js';
 import { getTheme, playerPalette } from './render/board.js';
 import { createAudio } from './audio/synth.js';
 import { createPrefs } from './storage/prefs.js';
@@ -36,6 +37,8 @@ import { createTurnTimer } from './game/timer.js';
 import { createChat } from './ui/chat.js';
 import { createSocial } from './meta/social.js';
 import { createFriendsModal, createLeaderboard, createProfileCard } from './ui/social.js';
+import { createGoldRoom, createMatchmaking, createOnlineModal } from './ui/online.js';
+import { formatAmount, tierById } from './meta/wallet.js';
 import {
   createOverlay,
   createPassScreen,
@@ -308,6 +311,100 @@ export function boot() {
     onProfile: (id) => profileCard.open(id),
   });
 
+  /* ──────────────────── online tables, matchmaking, gold room ─────────── */
+
+  const matchmaking = createMatchmaking({
+    el: document.querySelector('[data-overlay="match"]'),
+    i18n,
+    audio,
+    social,
+    catalog,
+  });
+
+  /** Give each non-human seat the name of the player who joined that slot. */
+  function nameSeats(seats, humanColor, opponents) {
+    const colors = pickColors(seats, humanColor);
+    const names = {};
+    let i = 0;
+    for (const color of colors) {
+      if (color === humanColor) continue;
+      const who = opponents[i++];
+      if (who) names[color] = who.name;
+    }
+    return names;
+  }
+
+  /**
+   * Take the entry fee, find a table, then start a real online session.
+   * Cancelling matchmaking costs nothing: the fee is only taken once the table
+   * is full.
+   */
+  async function playOnline({ format = 'classic', seats = 2, tierId = 'newbie' } = {}) {
+    const tier = tierById(tierId);
+    if (wallet.coins < tier.entry) {
+      toaster.toast(i18n.t('wallet.notEnough', { kind: i18n.t('common.coins') }), 'warn');
+      shopScreen.open('coins');
+      return null;
+    }
+
+    let opponents;
+    try {
+      opponents = await matchmaking.find(seats);
+    } catch (err) {
+      return null; // cancelled — nothing was charged
+    }
+    if (!wallet.stake(tierId, 'online')) return null;
+
+    const humanColor = prefs.get('playerColor') || 'red';
+    return startGame({
+      mode: ONLINE_MODE,
+      count: seats,
+      humanColor,
+      names: nameSeats(seats, humanColor, opponents),
+      botLevel: 'hard',
+      online: { tierId, seats, format },
+    });
+  }
+
+  /** Watch a Gold Room table: every seat is remote, so nothing is playable. */
+  function watchTable(table) {
+    const humanColor = prefs.get('playerColor') || 'red';
+    const colors = pickColors(2, humanColor);
+    const other = colors.find((c) => c !== humanColor) || colors[0];
+    const names = { [humanColor]: table.a.name, [other]: table.b.name };
+    toaster.toast(i18n.t('gold.watch'), 'info');
+    return startGame({
+      mode: ONLINE_MODE,
+      count: 2,
+      humanColor,
+      names,
+      botLevel: 'hard',
+      online: { tierId: table.tierId, seats: 2, format: 'classic', spectator: true },
+    });
+  }
+
+  const onlineModal = createOnlineModal({
+    el: document.querySelector('[data-overlay="online"]'),
+    bus,
+    i18n,
+    wallet,
+    account,
+    catalog,
+    audio,
+    onPlay: playOnline,
+  });
+
+  const goldRoom = createGoldRoom({
+    el: document.querySelector('[data-overlay="gold"]'),
+    i18n,
+    audio,
+    social,
+    catalog,
+    wallet,
+    onWatch: watchTable,
+    onPlay: playOnline,
+  });
+
   /* ─────────────────────────────── the lobby ──────────────────────────── */
 
   const PLAYABLE = { vsComputer: 1, passPlay: 1, quickMatch: 1 };
@@ -338,11 +435,11 @@ export function boot() {
           router.show('setup');
           return;
         }
-        if (id === 'friends') {
-          friendsModal.open('friends');
-          return;
-        }
-        comingSoon(id);
+        if (id === 'online') onlineModal.open();
+        else if (id === 'bigWin') onlineModal.open({ tierId: 'diamond', seats: 2 });
+        else if (id === 'goldRoom') goldRoom.open();
+        else if (id === 'friends') friendsModal.open('friends');
+        else comingSoon(id);
       },
       onRail: (id) => {
         if (id === 'tasks') taskScreen.open('daily');
@@ -456,6 +553,9 @@ export function boot() {
     if (!session) return;
     if (session.timer) session.timer.stop();
     session.controller.destroy();
+    // Disconnecting matters for online adapters: it drops their bus listeners
+    // and pending timers, so a finished table can never drive the next one.
+    if (session.adapter && typeof session.adapter.disconnect === 'function') session.adapter.disconnect();
     view.detach();
     session = null;
   }
@@ -465,16 +565,34 @@ export function boot() {
     overlays.result.close();
     overlays.pause.close();
 
-    const adapter = new LocalAdapter();
-    adapter.connect();
+    // Online tables run through the real sync seam: remote seats are NOT played
+    // locally, their actions arrive as {t,seat,...,n} and go through
+    // controller.applyRemoteAction(). Phase 2 swaps the adapter, nothing else.
+    const online = setup.online || null;
+    /** @type {{state:object}|null} filled right after createGame() */
+    let live = null;
+    let adapter;
+    if (online) {
+      adapter = new SimulatedOnlineAdapter({
+        bus,
+        getState: () => (live ? live.state : null),
+        mySeat: buildConfig(setup).startingPlayer,
+        spectator: !!online.spectator,
+        levels: [],
+      });
+    } else {
+      adapter = new LocalAdapter();
+    }
 
     const game = createGame({
       setup,
       bus,
       adapter,
-      speed: prefs.get('speed'),
+      speed: online && online.format === 'quick' ? 'fast' : prefs.get('speed'),
       state: resumeState,
     });
+    live = game.controller;
+    adapter.connect(online ? { id: online.tierId } : undefined);
 
     const timer = createTurnTimer({
       controller: game.controller,
@@ -489,6 +607,8 @@ export function boot() {
       humanId: humanSeatOf(game.state),
       adapter,
       timer,
+      online,
+      spectator: !!(online && online.spectator),
     };
 
     prefs.set('lastMode', game.mode);
@@ -542,7 +662,18 @@ export function boot() {
   resultEl.querySelector('[data-result="again"]').addEventListener('click', () => {
     audio.sfx.tap();
     const setup = session ? session.setup : { mode: prefs.get('lastMode') };
+    const online = session ? session.online : null;
     overlays.result.close();
+    // Replaying a staked table must go through matchmaking again and take a new
+    // entry fee — restarting the setup verbatim would hand out a free table.
+    if (online && !online.spectator) {
+      playOnline({ format: online.format, seats: online.seats, tierId: online.tierId });
+      return;
+    }
+    if (online && online.spectator) {
+      exitToMenu();
+      return;
+    }
     startGame(setup);
   });
   resultEl.querySelector('[data-result="menu"]').addEventListener('click', () => {
@@ -580,6 +711,9 @@ export function boot() {
   // points at the game that is actually on screen.
   const saveSnapshot = (p) => {
     if (!session) return;
+    // An online table cannot be resumed later: the entry fee is spent and the
+    // other seats are gone. Offering "Resume?" for one would be a lie.
+    if (session.online) return;
     resume.save(p.state, { setup: session.setup, mode: session.mode });
   };
   bus.on(EVENTS.GAME_STARTED, saveSnapshot);
@@ -591,18 +725,35 @@ export function boot() {
     const humanId = session.humanId;
     const me = state.players[humanId];
     const modeKey = (MODE_META[session.mode] || {}).statsKey || session.mode;
+    const watching = session.spectator;
 
-    stats.record(modeKey, {
-      won: !!me && me.rank === 1,
-      rank: me ? me.rank : 0,
-      players: state.players.length,
-      captures: me ? me.captures : 0,
-      losses: me ? me.losses : 0,
-    });
+    // A game you only watched is not a game you played.
+    if (!watching) {
+      stats.record(modeKey, {
+        won: !!me && me.rank === 1,
+        rank: me ? me.rank : 0,
+        players: state.players.length,
+        captures: me ? me.captures : 0,
+        losses: me ? me.losses : 0,
+      });
+      if (session.mode === MODE.QUICK_MATCH) tasks.track('quick3', 1);
+      account.addXp(me && me.rank === 1 ? 60 : 25, 'game');
+      rewards.stampLucky();
+    }
     resume.clear();
-    if (session.mode === MODE.QUICK_MATCH) tasks.track('quick3', 1);
-    account.addXp(me && me.rank === 1 ? 60 : 25, 'game');
-    rewards.stampLucky();
+
+    // Pay out a staked table, then say exactly what happened to the money.
+    const stake = !watching && session.online ? session.online : null;
+    if (stake && stake.tierId) {
+      const tier = tierById(stake.tierId);
+      const prize = wallet.settle(stake.tierId, me ? me.rank : 0, state.players.length);
+      if (prize > 0) {
+        account.addXp(tier.exp, 'stake-win');
+        toaster.toast(i18n.t('result.reward', { amount: formatAmount(prize) }), 'good', 2600);
+      } else {
+        toaster.toast(i18n.t('result.entryLost', { amount: formatAmount(tier.entry) }), 'warn', 2600);
+      }
+    }
     refreshBadges();
 
     const summary = renderResult({ el: resultEl, state, prefs, humanId, i18n });
@@ -787,6 +938,11 @@ export function boot() {
     friendsModal,
     leaderboard,
     profileCard,
+    onlineModal,
+    goldRoom,
+    matchmaking,
+    playOnline,
+    watchTable,
     rewards,
     i18n,
     startGame,

@@ -2593,3 +2593,232 @@ input:focus-visible {
 .screen--game {
   position: relative;
 }
+
+/* ──────────────────────── ONLINE / MATCH / GOLD ROOM ─────────────────── */
+
+.stake {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin: 10px 0 2px;
+}
+
+.stake-step {
+  width: 52px;
+  flex: 0 0 52px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--card-solid, #1d2740);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 12%);
+}
+
+.stake-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stake-card {
+  flex: 1 1 auto;
+  display: grid;
+  gap: 2px;
+  place-items: center;
+  padding: 12px 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f4b93c, #e8912a);
+  color: #3b2402;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 35%);
+}
+
+.stake-win {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stake-tier {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+.stake-entry {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.skin-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skin-strip-cell {
+  display: grid;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  text-align: center;
+  background: rgb(255 255 255 / 7%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 10%);
+}
+
+.skin-strip-cell b {
+  font-size: 12px;
+}
+
+.skin-strip-cell span {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.online-exp {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.nearby {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.nearby input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* matchmaking */
+
+.card--match {
+  max-width: 380px;
+  text-align: center;
+}
+
+.match-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 16px 0 6px;
+}
+
+.match-slot {
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  width: 76px;
+  min-height: 86px;
+}
+
+.match-name {
+  max-width: 76px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-spinner {
+  width: 46px;
+  height: 46px;
+  border: 3px solid rgb(255 255 255 / 16%);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* gold room */
+
+.gold-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 10%), rgb(255 255 255 / 4%));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 10%);
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.gold-side {
+  display: grid;
+  gap: 4px;
+  place-items: center;
+  min-width: 0;
+}
+
+.gold-side b {
+  max-width: 84px;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gold-mid {
+  display: grid;
+  gap: 2px;
+  place-items: center;
+}
+
+.gold-clock {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.gold-vs {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+.gold-heat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gold-x2 {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e8464f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}

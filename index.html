@@ -409,6 +409,42 @@
     </div>
   </div>
 
+  <div class="overlay overlay--sheet" data-overlay="online" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Online multiplayer">
+    <div class="card card--modal">
+      <header class="modal-head">
+        <h2 data-i18n="online.title">Online Multiplayer</h2>
+        <button class="modal-close" type="button" data-online="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
+      </header>
+      <div class="modal-body" data-online="body"></div>
+    </div>
+  </div>
+
+  <div class="overlay" data-overlay="match" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Finding players">
+    <div class="card card--match">
+      <h2 data-i18n="online.searching">Finding players…</h2>
+      <div class="match-slots" data-match="slots"></div>
+      <p class="muted" data-match="status"></p>
+      <button class="btn btn--ghost btn--wide" type="button" data-match="cancel"
+        data-i18n="common.cancel">Cancel</button>
+    </div>
+  </div>
+
+  <div class="overlay overlay--sheet" data-overlay="gold" aria-hidden="true" role="dialog" aria-modal="true"
+    aria-label="Gold room">
+    <div class="card card--modal">
+      <header class="modal-head">
+        <h2 data-modal="title">Gold Room</h2>
+        <button class="modal-close" type="button" data-modal="close" aria-label="Close"
+          data-i18n-aria="common.close">✕</button>
+      </header>
+      <div class="modal-tabs" data-modal="tabs" role="tablist"></div>
+      <div class="modal-body" data-modal="body"></div>
+    </div>
+  </div>
+
   <div class="update-bar" data-update="bar" role="status" hidden>
     <span data-update="text">New version ready</span>
     <button class="update-btn" type="button" data-update="reload">Reload</button>

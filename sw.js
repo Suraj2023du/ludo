@@ -11,7 +11,7 @@
  * Bump CACHE when you ship: the old cache is deleted on activate.
  */
 
-const CACHE = 'ludo-battle-v1';
+const CACHE = 'ludo-battle-v2';
 
 /** Every file in the app. Relative paths resolve against the SW scope. */
 const PRECACHE = [
@@ -30,6 +30,8 @@ const PRECACHE = [
   './src/ui/tasks.js',
   './src/ui/social.js',
   './src/ui/chat.js',
+  './src/ui/online.js',
+  './src/ui/dom.js',
   './src/meta/rewards.js',
   './src/meta/tasks.js',
   './src/meta/social.js',
@@ -59,6 +61,7 @@ const PRECACHE = [
   './src/storage/resume.js',
   './src/sync/adapter.js',
   './src/sync/local.js',
+  './src/sync/simulated.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-maskable-512.png',

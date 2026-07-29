@@ -10,6 +10,14 @@ import { COLORS, MODE, PLAYER_TYPE, createInitialState } from '../engine/state.j
 import { createController } from './controller.js';
 import { EVENTS } from './events.js';
 
+/**
+ * Online play. The id lives here and NOT in engine/state.js on purpose: the
+ * engine must never learn that a transport exists. `state.mode` is a free string
+ * as far as createInitialState() is concerned, so a mode can be added in the
+ * game layer without touching a single pure module.
+ */
+export const ONLINE_MODE = 'online';
+
 export const MODE_META = Object.freeze({
   [MODE.VS_COMPUTER]: {
     id: MODE.VS_COMPUTER,
@@ -40,6 +48,17 @@ export const MODE_META = Object.freeze({
     defaultPlayers: 2,
     humans: 1,
     statsKey: 'quickMatch',
+  },
+  [ONLINE_MODE]: {
+    id: ONLINE_MODE,
+    title: 'Online Multiplayer',
+    blurb: 'Staked table, seats arrive over the wire',
+    minPlayers: 2,
+    maxPlayers: 4,
+    defaultPlayers: 2,
+    humans: 1,
+    statsKey: 'online',
+    staked: true,
   },
 });
 
