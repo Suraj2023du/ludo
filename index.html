@@ -253,6 +253,30 @@
           data-i18n-aria="chat.throwLabel">🍅</button>
       </div>
     </section>
+
+    <!-- ─────────────────────── SNAKES & LADDERS ───────────────────── -->
+    <section class="screen screen--game" data-screen="snakes" aria-hidden="true">
+      <header class="hud">
+        <button class="icon-btn" type="button" data-snake="exit" aria-label="Back"
+          data-i18n-aria="common.back">‹</button>
+        <div class="banner" data-snake="banner" role="status" aria-live="polite" data-i18n="snake.title">Snakes &amp;
+          Ladders</div>
+        <span class="hud-spacer" aria-hidden="true"></span>
+      </header>
+
+      <div class="board-wrap">
+        <canvas data-snake="canvas" role="img" aria-label="Snakes and Ladders board"></canvas>
+      </div>
+
+      <div class="snake-seats" data-snake="seats"></div>
+
+      <div class="snake-controls">
+        <button class="snake-roll" type="button" data-snake="rollbtn" aria-label="Roll the dice"
+          data-i18n-aria="snake.roll">
+          <canvas class="snake-dice" data-snake="dice" aria-hidden="true"></canvas>
+        </button>
+      </div>
+    </section>
   </div>
 
   <!-- ─────────────────────────── OVERLAYS ─────────────────────────── -->

@@ -40,6 +40,8 @@ import { createFriendsModal, createLeaderboard, createProfileCard } from './ui/s
 import { createGoldRoom, createMatchmaking, createOnlineModal } from './ui/online.js';
 import { createTournament } from './meta/tournament.js';
 import { createTournamentScreen } from './ui/tournament.js';
+import { createSnakeScreen } from './ui/snakes.js';
+import { SNAKE_EVENTS } from './game/snakeGame.js';
 import { formatAmount, tierById } from './meta/wallet.js';
 import {
   createOverlay,
@@ -437,6 +439,52 @@ export function boot() {
     onPlay: playOnline,
   });
 
+  /* ───────────────────────── snakes & ladders ─────────────────────────── */
+
+  const snakeScreen = createSnakeScreen({
+    el: router.el('snakes'),
+    bus,
+    i18n,
+    audio,
+    prefs,
+    catalog,
+    onExit: () => {
+      snakeScreen.stop();
+      router.show('menu');
+      refreshMenu();
+    },
+  });
+
+  /** A second game, sharing the bus but nothing else. */
+  function startSnakes(setup = {}) {
+    endSession(); // a Ludo table and a Snakes board never run at once
+    view.stop();
+    router.show('snakes');
+    return snakeScreen.start({
+      count: setup.count || 2,
+      humanColor: setup.humanColor || prefs.get('playerColor') || 'red',
+      names: setup.names,
+      options: setup.options,
+      timing: setup.timing,
+    });
+  }
+
+  // The board only wins a game when a token lands exactly on 100, so the result
+  // is announced on the screen itself; the lobby just records the game.
+  bus.on(SNAKE_EVENTS.ENDED, (ev) => {
+    const me = snakeScreen.controller ? snakeScreen.controller.state.players.find((p) => p.type === 'human') : null;
+    stats.record('snakes', {
+      won: !!me && me.rank === 1,
+      rank: me ? me.rank : 0,
+      players: ev.ranks.length,
+      captures: me ? me.climbs : 0,
+      losses: me ? me.bites : 0,
+    });
+    account.addXp(me && me.rank === 1 ? 50 : 20, 'snakes');
+    rewards.stampLucky();
+    refreshBadges();
+  });
+
   /* ─────────────────────────────── the lobby ──────────────────────────── */
 
   const PLAYABLE = { vsComputer: 1, passPlay: 1, quickMatch: 1 };
@@ -471,6 +519,7 @@ export function boot() {
         else if (id === 'bigWin') onlineModal.open({ tierId: 'diamond', seats: 2 });
         else if (id === 'goldRoom') goldRoom.open();
         else if (id === 'tournament') tourScreen.open();
+        else if (id === 'snakes') startSnakes();
         else if (id === 'friends') friendsModal.open('friends');
         else comingSoon(id);
       },
@@ -878,6 +927,8 @@ export function boot() {
     else view.stop();
     if (name === 'menu') home.start();
     else home.stop();
+    if (name === 'snakes') snakeScreen.resize();
+    else snakeScreen.pause();
   });
 
   /* ──────────────────────────── menu refresh ──────────────────────────── */
@@ -997,6 +1048,8 @@ export function boot() {
     tournament,
     tourScreen,
     playTournament,
+    snakeScreen,
+    startSnakes,
     rewards,
     i18n,
     startGame,

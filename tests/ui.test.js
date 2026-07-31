@@ -40,7 +40,7 @@ const INSTANT = {
 test('ui: index.html boots and exposes the app', () => {
   assert.ok(api, 'window.LudoBattle must exist');
   assert.equal(doc.getElementById('app') !== null, true);
-  assert.equal(doc.querySelectorAll('[data-screen]').length, 6, 'six screens in the shell');
+  assert.equal(doc.querySelectorAll('[data-screen]').length, 7, 'seven screens in the shell');
   assert.deepEqual(dom.console.errors, []);
 });
 
@@ -796,6 +796,82 @@ test('ui: an expired arena pays out the moment you look at it', async () => {
   api.tourScreen.close();
   await tick(10);
   assert.equal(el.classList.contains('is-open'), false);
+  assert.deepEqual(dom.console.errors, []);
+});
+
+/* ─────────────────────── Wave 7: Snakes & Ladders ─────────────────────── */
+
+test('ui: the Snakes & Ladders tile opens a real, playable board', async () => {
+  api.router.show('menu', { silent: true });
+  doc.querySelector('[data-tile="snakes"]').click();
+  await tick(40);
+
+  assert.equal(api.router.current, 'snakes');
+  const controller = api.snakeScreen.controller;
+  assert.ok(controller, 'a game was created');
+  assert.equal(controller.state.players.length, 2);
+  assert.equal(controller.state.players[0].type, 'human');
+  assert.equal(controller.state.players[1].type, 'bot');
+  assert.equal(controller.state.players[0].cell, 0, 'everyone starts off the board');
+
+  const screen = api.router.el('snakes');
+  assert.equal(screen.querySelectorAll('[data-seat]').length, 2, 'a seat chip per player');
+  assert.ok(screen.querySelector('.snake-seat.is-turn'), 'whose turn it is, is visible');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: the board is painted in code, snakes and ladders included', async () => {
+  const canvas = api.router.el('snakes').querySelector('[data-snake="canvas"]');
+  const calls = canvas.getContext('2d').calls;
+  assert.ok(calls > 400, 'the board is drawn in code (' + calls + ' draw calls)');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: tapping the dice rolls, walks the pawn and hands over the turn', async () => {
+  const controller = api.snakeScreen.controller;
+  controller.setTiming({ diceRoll: 0, hop: 0, jump: 0, botThink: 0, turnGap: 0, blocked: 0 });
+  assert.equal(controller.canRoll(), true, 'it is our turn');
+
+  // The pawn really walks the squares, so this waits for the animation too.
+  const before = controller.state.rollCount;
+  api.router.el('snakes').querySelector('[data-snake="rollbtn"]').click();
+  for (let i = 0; i < 60 && controller.state.rollCount === before; i++) await tick(30);
+  assert.ok(controller.state.rollCount > before, 'the roll was played');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: finishing a snakes game records it and announces the winner', async () => {
+  const controller = api.snakeScreen.controller;
+  const gamesBefore = (api.stats.all().modes.snakes || { games: 0 }).games;
+  let ended = null;
+  api.bus.on('snake:ended', (e) => {
+    ended = e;
+  });
+
+  // Drop the animator so the loop runs at test speed; the painting is covered above.
+  controller.setAnimator({});
+  for (let i = 0; i < 400 && !ended; i++) {
+    if (controller.state.turn === 0 && controller.canRoll()) {
+      const need = 100 - controller.state.players[0].cell;
+      controller.force(need >= 1 && need <= 6 ? need : 6);
+    }
+    await tick(4);
+  }
+
+  assert.ok(ended, 'the game ended');
+  assert.equal(ended.winner, 0, 'we reached 100 first');
+  assert.equal(controller.state.players[0].rank, 1);
+  assert.equal((api.stats.all().modes.snakes || {}).games, gamesBefore + 1, 'it counts as a game');
+  const banner = api.router.el('snakes').querySelector('[data-snake="banner"]').textContent;
+  assert.match(banner, /100/, 'the banner announces the win');
+  assert.deepEqual(dom.console.errors, []);
+});
+
+test('ui: leaving the snakes board returns to the lobby and frees the game', async () => {
+  api.router.el('snakes').querySelector('[data-snake="exit"]').click();
+  await tick(40);
+  assert.equal(api.router.current, 'menu');
+  assert.equal(api.snakeScreen.controller, null, 'the game was released');
   assert.deepEqual(dom.console.errors, []);
 });
 
