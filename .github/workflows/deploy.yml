@@ -40,7 +40,7 @@ jobs:
       - name: UI playthrough (capture, endgame, result screen)
         run: node tools/playthrough.js
 
-      - name: Payload budget (< 500 KB)
+      - name: Payload budget (< 250 KB gzip over the wire)
         run: node tools/size.js
 
   deploy:
